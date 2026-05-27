@@ -281,10 +281,40 @@ def normalize_ingestion(raw_ingestion):
                 ))
 
     EmissionsDataPoint.objects.bulk_create(emission_points, batch_size=500)
+
+    # Create ReviewTasks for every NormalizedRecord so analysts can approve/reject
+    from breathe.apps.review.models import ReviewTask
+
+    # Idempotent: remove any existing review tasks for this ingestion
+    ReviewTask.objects.filter(ingestion_id=raw_ingestion).delete()
+
+    review_tasks = []
+    for nr in NormalizedRecord.objects.filter(ingestion_id=raw_ingestion):
+        if not nr.is_valid:
+            priority = 'HIGH'
+            reason_codes = ['validation_error']
+        elif nr.data_quality_score < 70:
+            priority = 'MEDIUM'
+            reason_codes = ['low_quality']
+        else:
+            priority = 'LOW'
+            reason_codes = ['routine_review']
+
+        review_tasks.append(ReviewTask(
+            ingestion_id=raw_ingestion,
+            normalized_record_id=nr,
+            tenant_id=raw_ingestion.tenant_id,
+            status='PENDING',
+            priority=priority,
+            reason_codes=reason_codes,
+        ))
+
+    ReviewTask.objects.bulk_create(review_tasks, batch_size=500)
     logger.info(
         f"Normalization complete: {total_normalized} normalized, "
         f"{valid_count} valid, {invalid_count} invalid, "
-        f"{len(emission_points)} EmissionsDataPoints created"
+        f"{len(emission_points)} EmissionsDataPoints created, "
+        f"{len(review_tasks)} ReviewTasks queued"
     )
 
     return {

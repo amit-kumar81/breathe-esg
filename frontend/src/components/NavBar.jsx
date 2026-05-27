@@ -27,8 +27,9 @@ function NavBar() {
             <>
               <span className="navbar-username">
                 {user.username}
-                {user.tenant_name && <span style={{ color: '#888', fontSize: '12px', marginLeft: 6 }}>({user.tenant_name})</span>}
+                {user.tenant?.name && <span style={{ color: '#888', fontSize: '12px', marginLeft: 6 }}>({user.tenant.name})</span>}
               </span>
+              <span style={roleBadgeStyle(user.role)}>{user.role}</span>
               <button className="navbar-logout" onClick={() => logout()}>Logout</button>
             </>
           )}
@@ -49,7 +50,8 @@ function NavBar() {
         {user && (
           <div className="drawer-user">
             Signed in as <strong>{user.username}</strong>
-            {user.tenant_name && ` · ${user.tenant_name}`}
+            {user.tenant?.name && ` · ${user.tenant.name}`}
+            {user.role && <span style={{ ...roleBadgeStyle(user.role), marginLeft: 8, fontSize: '11px' }}>{user.role}</span>}
           </div>
         )}
         <NavLink to="/dashboard" style={drawerLinkStyle} onClick={closeMenu}>Dashboard</NavLink>
@@ -61,6 +63,26 @@ function NavBar() {
       </div>
     </header>
   )
+}
+
+const roleBadgeStyle = (role) => {
+  const colors = {
+    ADMIN: { background: '#dc3545', color: '#fff' },
+    ANALYST: { background: '#007bff', color: '#fff' },
+    DATA_PROVIDER: { background: '#fd7e14', color: '#fff' },
+    VIEWER: { background: '#6c757d', color: '#fff' },
+  }
+  const c = colors[role] || colors.VIEWER
+  return {
+    fontSize: '11px',
+    fontWeight: '600',
+    padding: '2px 7px',
+    borderRadius: '10px',
+    background: c.background,
+    color: c.color,
+    letterSpacing: '0.3px',
+    whiteSpace: 'nowrap',
+  }
 }
 
 const linkStyle = ({ isActive }) => ({

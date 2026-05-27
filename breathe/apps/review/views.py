@@ -50,8 +50,18 @@ class ReviewTaskViewSet(viewsets.ModelViewSet):
     
     queryset = ReviewTask.objects.all()
     filter_backends = [OrderingFilter]
-    ordering_fields = ['priority', 'created_at', 'data_quality_score']
+    ordering_fields = ['priority', 'created_at']
     ordering = ['-priority', '-created_at']
+
+    def get_queryset(self):
+        qs = ReviewTask.objects.all()
+        status = self.request.query_params.get('status')
+        priority = self.request.query_params.get('priority')
+        if status:
+            qs = qs.filter(status=status)
+        if priority:
+            qs = qs.filter(priority=priority)
+        return qs
     
     def get_serializer_class(self):
         if self.action == 'retrieve':
