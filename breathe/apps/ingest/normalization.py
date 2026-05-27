@@ -89,7 +89,8 @@ def normalize_parsed_record(parsed_record, data_source):
         )
 
         if is_valid:
-            normalized_values[standard_field] = normalized_value
+            # Convert Decimal to float so the dict is JSON-serializable for JSONB storage
+            normalized_values[standard_field] = float(normalized_value) if isinstance(normalized_value, Decimal) else normalized_value
             logger.debug(f"Field {standard_field}: '{raw_value}' → {normalized_value} ✓")
         else:
             validation_errors.append({
