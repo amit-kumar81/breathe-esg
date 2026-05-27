@@ -8,6 +8,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
 
 /**
+ * Fetch available data sources for the current tenant
+ */
+export function useDataSources() {
+  return useQuery({
+    queryKey: ['datasources'],
+    queryFn: async () => {
+      const response = await apiClient.get('/ingest/datasources/')
+      return response.data
+    },
+    staleTime: 1000 * 60 * 5
+  })
+}
+
+/**
  * Fetch paginated ingestions
  *
  * @param {Object} options - Query options

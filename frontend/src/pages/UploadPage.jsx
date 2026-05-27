@@ -7,12 +7,13 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useUploadCSV } from '../hooks/useIngestions'
+import { useUploadCSV, useDataSources } from '../hooks/useIngestions'
 import { getErrorMessage } from '../utils/errorHandler'
 
 function UploadPage() {
   const navigate = useNavigate()
   const { mutate: upload, isPending, error, data } = useUploadCSV()
+  const { data: dsData, isLoading: dsLoading } = useDataSources()
 
   const [file, setFile] = useState(null)
   const [dataSourceId, setDataSourceId] = useState('')
@@ -126,26 +127,28 @@ function UploadPage() {
             )}
           </div>
 
-          {/* Data Source ID */}
+          {/* Data Source Dropdown */}
           <div style={styles.formGroup}>
-            <label htmlFor="datasource" style={styles.label}>Data Source ID *</label>
-            <input
+            <label htmlFor="datasource" style={styles.label}>Data Source *</label>
+            <select
               id="datasource"
-              type="text"
-              placeholder="e.g., acme-corp-2023"
               value={dataSourceId}
               onChange={(e) => setDataSourceId(e.target.value)}
               onBlur={() => handleBlur('dataSourceId')}
-              disabled={isPending}
+              disabled={isPending || dsLoading}
               style={{
                 ...styles.input,
                 borderColor: touched.dataSourceId && !dataSourceId ? '#dc3545' : undefined
               }}
-            />
+            >
+              <option value="">{dsLoading ? 'Loading...' : '— Select a data source —'}</option>
+              {(dsData?.results || dsData || []).map(ds => (
+                <option key={ds.id} value={ds.id}>{ds.name}</option>
+              ))}
+            </select>
             {touched.dataSourceId && !dataSourceId && (
-              <p style={styles.errorText}>Data Source ID is required</p>
+              <p style={styles.errorText}>Data source is required</p>
             )}
-            <p style={styles.helpText}>Used to identify and deduplicate uploads</p>
           </div>
 
           {/* Submit Button */}
