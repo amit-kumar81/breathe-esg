@@ -38,72 +38,35 @@ class AuditLogSerializer(serializers.ModelSerializer):
 class EmissionsDataPointListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for listing EmissionsDataPoints.
-    Flattens normalized_values for easier frontend consumption.
-    Excludes heavy fields like full validation errors.
+    Uses direct model fields for fast serialization.
     """
-    # Flatten normalized_values (core ESG fields)
-    facility_name = serializers.CharField(
-        source='normalized_values.facility_name',
-        read_only=True,
-        allow_null=True
-    )
-    scope_1_emissions = serializers.FloatField(
-        source='normalized_values.scope_1_emissions',
-        read_only=True,
-        allow_null=True
-    )
-    scope_2_emissions = serializers.FloatField(
-        source='normalized_values.scope_2_emissions',
-        read_only=True,
-        allow_null=True
-    )
-    scope_3_emissions = serializers.FloatField(
-        source='normalized_values.scope_3_emissions',
-        read_only=True,
-        allow_null=True
-    )
-    year = serializers.IntegerField(
-        source='normalized_values.year',
-        read_only=True,
-        allow_null=True
-    )
-    methodology = serializers.CharField(
-        source='normalized_values.methodology',
-        read_only=True,
-        allow_null=True
-    )
-    
-    # Count of validation issues
     validation_error_count = serializers.SerializerMethodField()
     data_quality_flag_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = EmissionsDataPoint
         fields = [
             'id',
             'facility_name',
-            'scope_1_emissions',
-            'scope_2_emissions',
-            'scope_3_emissions',
+            'scope',
+            'emissions_value',
+            'emissions_unit',
             'year',
             'methodology',
-            'review_status',
-            'data_quality_score',
+            'is_valid',
             'validation_error_count',
             'data_quality_flag_count',
             'created_at',
-            'updated_at'
+            'updated_at',
         ]
         read_only_fields = fields
-    
+
     def get_validation_error_count(self, obj):
-        """Count validation errors from validation_errors JSONB."""
         if obj.validation_errors and isinstance(obj.validation_errors, list):
             return len(obj.validation_errors)
         return 0
-    
+
     def get_data_quality_flag_count(self, obj):
-        """Count data quality flags from data_quality_flags JSONB."""
         if obj.data_quality_flags and isinstance(obj.data_quality_flags, list):
             return len(obj.data_quality_flags)
         return 0
@@ -112,96 +75,42 @@ class EmissionsDataPointListSerializer(serializers.ModelSerializer):
 class EmissionsDataPointDetailSerializer(serializers.ModelSerializer):
     """
     Detailed serializer for EmissionsDataPoint.
-    Includes all fields: normalized values, validation errors, audit trail.
+    Includes all fields: raw values, validation errors, recent audit trail.
     Used for GET /api/emissions/{id}/ endpoint.
     """
-    # Flatten normalized_values (core ESG fields)
-    facility_name = serializers.CharField(
-        source='normalized_values.facility_name',
-        read_only=True,
-        allow_null=True
-    )
-    scope_1_emissions = serializers.FloatField(
-        source='normalized_values.scope_1_emissions',
-        read_only=True,
-        allow_null=True
-    )
-    scope_2_emissions = serializers.FloatField(
-        source='normalized_values.scope_2_emissions',
-        read_only=True,
-        allow_null=True
-    )
-    scope_3_emissions = serializers.FloatField(
-        source='normalized_values.scope_3_emissions',
-        read_only=True,
-        allow_null=True
-    )
-    year = serializers.IntegerField(
-        source='normalized_values.year',
-        read_only=True,
-        allow_null=True
-    )
-    methodology = serializers.CharField(
-        source='normalized_values.methodology',
-        read_only=True,
-        allow_null=True
-    )
-    data_quality_flag = serializers.CharField(
-        source='normalized_values.data_quality_flag',
-        read_only=True,
-        allow_null=True
-    )
-    
-    # Include validation errors and flags (full detail)
-    validation_errors = serializers.JSONField(read_only=True)
-    data_quality_flags = serializers.JSONField(read_only=True)
-    
-    # Metadata
     data_source_name = serializers.CharField(
-        source='data_source.source_name',
+        source='data_source_id.name',
         read_only=True,
-        allow_null=True
+        allow_null=True,
     )
-    
-    # Recent audit trail (last 5 changes)
     recent_changes = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = EmissionsDataPoint
         fields = [
             'id',
             'facility_name',
-            'scope_1_emissions',
-            'scope_2_emissions',
-            'scope_3_emissions',
+            'scope',
+            'emissions_value',
+            'emissions_unit',
             'year',
             'methodology',
-            'data_quality_flag',
+            'is_valid',
+            'normalized_values',
             'validation_errors',
             'data_quality_flags',
-            'data_quality_score',
-            'review_status',
             'data_source_name',
-            'reviewed_at',
-            'reviewer_notes',
             'created_at',
             'updated_at',
-            'recent_changes'
+            'recent_changes',
         ]
-        read_only_fields = [
-            'id',
-            'created_at',
-            'updated_at',
-            'recent_changes'
-        ]
-    
+        read_only_fields = fields
+
     def get_recent_changes(self, obj):
-        """Retrieve last 5 audit log entries for this object."""
         audits = AuditLog.objects.filter(
             object_type='EmissionsDataPoint',
             object_id=str(obj.id)
         ).order_by('-timestamp')[:5]
-        
         return AuditLogSerializer(audits, many=True).data
 
 
