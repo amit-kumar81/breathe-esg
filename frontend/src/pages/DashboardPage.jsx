@@ -42,7 +42,7 @@ function DashboardPage() {
   }
 
   return (
-    <div style={styles.container}>
+    <div className="page-container">
       {/* Header */}
       <div style={styles.header}>
         <h1>Emissions Dashboard</h1>
@@ -50,13 +50,12 @@ function DashboardPage() {
       </div>
 
       {/* Filters */}
-      <div style={styles.filtersBox}>
-        <div style={styles.filterGroup}>
+      <div className="dashboard-filters">
+        <div className="filter-group">
           <label>Year:</label>
           <select
             value={filters.year}
             onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-            style={styles.select}
           >
             <option value="all">All Years</option>
             {summary.available_years?.map(year => (
@@ -65,12 +64,11 @@ function DashboardPage() {
           </select>
         </div>
 
-        <div style={styles.filterGroup}>
+        <div className="filter-group">
           <label>Facility:</label>
           <select
             value={filters.facility}
             onChange={(e) => setFilters({ ...filters, facility: e.target.value })}
-            style={styles.select}
           >
             <option value="all">All Facilities</option>
             {summary.available_facilities?.map(facility => (
@@ -79,12 +77,11 @@ function DashboardPage() {
           </select>
         </div>
 
-        <div style={styles.filterGroup}>
+        <div className="filter-group">
           <label>Scope:</label>
           <select
             value={filters.scope}
             onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
-            style={styles.select}
           >
             <option value="all">All Scopes</option>
             <option value="scope_1">Scope 1 (Direct)</option>
@@ -95,7 +92,7 @@ function DashboardPage() {
       </div>
 
       {/* Summary Metrics */}
-      <div style={styles.metricsGrid}>
+      <div className="metrics-grid">
         <div style={styles.metricCard}>
           <div style={styles.metricLabel}>Total Emissions</div>
           <div style={styles.metricValue}>{summary.total_emissions?.toFixed(0) || 0}</div>
@@ -122,7 +119,7 @@ function DashboardPage() {
       </div>
 
       {/* Charts Grid */}
-      <div style={styles.chartsGrid}>
+      <div className="charts-grid">
         {/* Emissions by Scope - Bar Chart */}
         {summary.by_scope && (
           <div style={styles.chartBox}>
@@ -212,7 +209,7 @@ function DashboardPage() {
       {summary.approved_records && summary.approved_records.length > 0 && (
         <div style={styles.tableSection}>
           <h2>Approved Records</h2>
-          <div style={styles.tableWrapper}>
+          <div className="table-scroll">
             <table style={styles.table}>
               <thead>
                 <tr>

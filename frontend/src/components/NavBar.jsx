@@ -1,132 +1,87 @@
-/**
- * Navigation Bar Component
- *
- * Displays app header with user info and logout button.
- * Only shown when user is authenticated.
- */
-
-import { useNavigate, NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
 import { useCurrentUser, useLogout } from '../hooks/useAuth'
 
 function NavBar() {
-  const navigate = useNavigate()
   const { data: user } = useCurrentUser()
   const { mutate: logout } = useLogout()
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  const handleLogout = () => {
-    logout()
-  }
+  const closeMenu = () => setMenuOpen(false)
 
   return (
-    <nav style={styles.navbar}>
-      <div style={styles.container}>
-        {/* Logo/Title */}
-        <div style={styles.left}>
-          <h1 style={styles.title}>Breathe ESG</h1>
-          <nav style={styles.nav}>
-            <NavLink to="/dashboard" style={navLinkStyle}>Dashboard</NavLink>
-            <NavLink to="/upload" style={navLinkStyle}>Upload</NavLink>
-            <NavLink to="/review" style={navLinkStyle}>Review</NavLink>
-          </nav>
-        </div>
+    <header className="navbar">
+      <div className="navbar-inner">
+        <span className="navbar-brand">Breathe ESG</span>
 
-        {/* User Info and Actions */}
-        <div style={styles.right}>
+        {/* Desktop nav links */}
+        <nav className="navbar-links">
+          <NavLink to="/dashboard" style={linkStyle} onClick={closeMenu}>Dashboard</NavLink>
+          <NavLink to="/upload"    style={linkStyle} onClick={closeMenu}>Upload</NavLink>
+          <NavLink to="/review"    style={linkStyle} onClick={closeMenu}>Review</NavLink>
+        </nav>
+
+        {/* Desktop user info */}
+        <div className="navbar-right">
           {user && (
             <>
-              <div style={styles.userInfo}>
-                <span style={styles.username}>{user.username}</span>
-                <span style={styles.tenant}>({user.tenant_name})</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                style={styles.logoutButton}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#c82333'
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = '#dc3545'
-                }}
-              >
-                Logout
-              </button>
+              <span className="navbar-username">
+                {user.username}
+                {user.tenant_name && <span style={{ color: '#888', fontSize: '12px', marginLeft: 6 }}>({user.tenant_name})</span>}
+              </span>
+              <button className="navbar-logout" onClick={() => logout()}>Logout</button>
             </>
           )}
         </div>
+
+        {/* Hamburger — mobile only */}
+        <button
+          className="navbar-hamburger"
+          onClick={() => setMenuOpen(o => !o)}
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
       </div>
-    </nav>
+
+      {/* Mobile drawer */}
+      <div className={`navbar-drawer ${menuOpen ? 'open' : ''}`}>
+        {user && (
+          <div className="drawer-user">
+            Signed in as <strong>{user.username}</strong>
+            {user.tenant_name && ` · ${user.tenant_name}`}
+          </div>
+        )}
+        <NavLink to="/dashboard" style={drawerLinkStyle} onClick={closeMenu}>Dashboard</NavLink>
+        <NavLink to="/upload"    style={drawerLinkStyle} onClick={closeMenu}>Upload</NavLink>
+        <NavLink to="/review"    style={drawerLinkStyle} onClick={closeMenu}>Review</NavLink>
+        {user && (
+          <button className="drawer-logout" onClick={() => { logout(); closeMenu() }}>Logout</button>
+        )}
+      </div>
+    </header>
   )
 }
 
-const navLinkStyle = ({ isActive }) => ({
+const linkStyle = ({ isActive }) => ({
   color: isActive ? '#fff' : '#bbb',
   textDecoration: 'none',
   fontSize: '14px',
   fontWeight: isActive ? '600' : '400',
-  padding: '4px 8px',
+  padding: '4px 10px',
   borderRadius: '4px',
-  backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent'
+  backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+  whiteSpace: 'nowrap'
 })
 
-const styles = {
-  navbar: {
-    backgroundColor: '#333',
-    padding: '0',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-  },
-  container: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '12px 20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  left: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px'
-  },
-  nav: {
-    display: 'flex',
-    gap: '8px'
-  },
-  title: {
-    margin: '0',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    color: '#fff'
-  },
-  right: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px'
-  },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#fff'
-  },
-  username: {
-    fontWeight: '500'
-  },
-  tenant: {
-    color: '#bbb',
-    fontSize: '12px'
-  },
-  logoutButton: {
-    padding: '8px 16px',
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'background-color 0.2s'
-  }
-}
+const drawerLinkStyle = ({ isActive }) => ({
+  color: isActive ? '#fff' : '#bbb',
+  textDecoration: 'none',
+  fontSize: '15px',
+  fontWeight: isActive ? '600' : '400',
+  padding: '10px 0',
+  display: 'block',
+  borderBottom: '1px solid #3a3a3a'
+})
 
 export default NavBar

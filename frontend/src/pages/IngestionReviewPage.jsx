@@ -30,7 +30,7 @@ function IngestionReviewPage() {
   const stepLabel = isParsing ? 'Parsing…' : isNormalizing ? 'Normalizing…' : ingestion.step
 
   return (
-    <div style={styles.container}>
+    <div className="page-container" style={{ maxWidth: 1000 }}>
       <style>{`
         @keyframes slide {
           from { background-position: 0 0; }
@@ -48,9 +48,9 @@ function IngestionReviewPage() {
           <span>Status:</span>
           <strong style={isWorking ? { color: '#007bff' } : {}}>{stepLabel}</strong>
         </div>
-        <div style={styles.statusRow}>
+        <div className="status-row">
           <span>Progress:</span>
-          <div style={styles.progressBar}>
+          <div className="progress-bar-wrap">
             <div style={{
               ...styles.progressFill,
               width: isWorking ? '100%' : `${ingestion.completion_percentage}%`,
@@ -61,7 +61,7 @@ function IngestionReviewPage() {
               transition: isWorking ? 'none' : 'width 0.6s ease'
             }}></div>
           </div>
-          <span style={styles.progressLabel}>
+          <span style={{ fontSize: 13, color: '#495057', whiteSpace: 'nowrap' }}>
             {isWorking ? 'Working…' : `Step ${stepNumber} of 3 (${ingestion.completion_percentage}%)`}
           </span>
         </div>
@@ -118,7 +118,7 @@ function IngestionReviewPage() {
       {ingestion.sample_parsed_records && ingestion.sample_parsed_records.length > 0 && (
         <div style={styles.section}>
           <h2>Parsed Records (sample of {ingestion.sample_parsed_records.length})</h2>
-          <div style={styles.tableWrapper}>
+          <div className="table-scroll">
             <table style={styles.dataTable}>
               <thead>
                 <tr>
@@ -151,7 +151,7 @@ function IngestionReviewPage() {
       {ingestion.sample_normalized_records && ingestion.sample_normalized_records.length > 0 && (
         <div style={styles.section}>
           <h2>Normalized Records ({ingestion.sample_normalized_records.length})</h2>
-          <div style={styles.tableWrapper}>
+          <div className="table-scroll">
             <table style={styles.dataTable}>
               <thead>
                 <tr>

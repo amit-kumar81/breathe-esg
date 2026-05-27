@@ -52,7 +52,7 @@ function UploadPage() {
   // After successful upload, show ingestion card with option to proceed
   if (data && !isPending) {
     return (
-      <div style={styles.container}>
+      <div className="page-container" style={{ maxWidth: 640 }}>
         <div style={styles.successCard}>
           <h2 style={styles.successTitle}>✓ Upload Successful</h2>
           <p style={styles.successText}>Your CSV has been uploaded and is ready for processing.</p>
@@ -64,7 +64,7 @@ function UploadPage() {
             <p><strong>Status:</strong> {data.status}</p>
           </div>
 
-          <div style={styles.actions}>
+          <div className="upload-actions">
             <button
               style={styles.primaryButton}
               onClick={() => navigate(`/ingest/${data.ingestion_id}`)}
@@ -88,8 +88,8 @@ function UploadPage() {
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
+    <div className="page-container" style={{ maxWidth: 640 }}>
+      <div className="page-card">
         <h1 style={styles.title}>Upload Emissions Data</h1>
         <p style={styles.description}>
           Upload a CSV file containing emissions data. We'll parse it, validate each record, and flag issues.
