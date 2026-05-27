@@ -136,10 +136,68 @@ class IngestionViewSet(viewsets.ViewSet):
             )
 
     def list(self, request):
-        return Response({"message": "List endpoint coming in Chunk 2.1"})
+        try:
+            tenant_id = request.user.profile.tenant_id
+        except Exception:
+            return Response([], status=status.HTTP_200_OK)
+        ingestions = RawIngestion.objects.filter(tenant_id=tenant_id).order_by('-created_at')
+        data = [
+            {
+                'id': str(i.id),
+                'filename': i.filename,
+                'line_count': i.line_count,
+                'created_at': i.created_at.isoformat(),
+            }
+            for i in ingestions
+        ]
+        return Response({'results': data, 'count': len(data)})
 
     def retrieve(self, request, pk=None):
-        return Response({"message": "Retrieve endpoint coming in Chunk 2.1"})
+        try:
+            ingestion = RawIngestion.objects.get(id=pk)
+        except RawIngestion.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        from .models import ParsedRecord, NormalizedRecord as IngestNormalized
+        parsed_count = ParsedRecord.objects.filter(ingestion_id=ingestion).count()
+        normalized_count = IngestNormalized.objects.filter(ingestion_id=ingestion).count()
+
+        if normalized_count > 0:
+            step = 'NORMALIZED'
+            completion_percentage = 100
+        elif parsed_count > 0:
+            step = 'PARSED'
+            completion_percentage = 66
+        else:
+            step = 'UPLOADED'
+            completion_percentage = 33
+
+        sample_parsed = list(
+            ParsedRecord.objects.filter(ingestion_id=ingestion)
+            .values('source_row_number', 'raw_values', 'parsing_errors')[:5]
+        )
+        sample_normalized = list(
+            IngestNormalized.objects.filter(ingestion_id=ingestion)
+            .values('facility_name', 'scope_1_emissions', 'reporting_year',
+                    'data_quality_score', 'is_valid')[:5]
+        )
+        valid_count = IngestNormalized.objects.filter(ingestion_id=ingestion, is_valid=True).count()
+
+        return Response({
+            'id': str(ingestion.id),
+            'filename': ingestion.filename,
+            'line_count': ingestion.line_count,
+            'step': step,
+            'completion_percentage': completion_percentage,
+            'sample_parsed_records': sample_parsed,
+            'sample_normalized_records': sample_normalized,
+            'summary': {
+                'total_records': normalized_count,
+                'valid_records': valid_count,
+                'warning_records': 0,
+                'error_records': normalized_count - valid_count,
+            } if normalized_count > 0 else None,
+        })
 
     @action(detail=True, methods=['post'], url_path='parse', url_name='parse')
     def parse(self, request, pk=None):
