@@ -74,9 +74,12 @@ export function useUploadCSV() {
       formData.append('file', file)
       formData.append('data_source_id', dataSourceId)
 
-      // Do NOT set Content-Type manually — axios sets it with the correct
-      // multipart boundary automatically when the body is FormData.
-      const response = await apiClient.post('/ingest/upload/', formData)
+      // Setting Content-Type to undefined removes the instance-level
+      // 'application/json' default, letting axios auto-set multipart/form-data
+      // with the correct boundary for FormData.
+      const response = await apiClient.post('/ingest/upload/', formData, {
+        headers: { 'Content-Type': undefined }
+      })
 
       return response.data
     },
