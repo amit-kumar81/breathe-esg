@@ -80,17 +80,16 @@ class IngestionUploadSerializer(serializers.Serializer):
 
         # Try to parse CSV to validate structure
         try:
-            file_obj.seek(0)  # Reset file pointer
-            reader = csv.DictReader(
-                io.TextIOWrapper(file_obj, encoding='utf-8'),
-                strict=True
-            )
+            file_obj.seek(0)
+            text_content = file_obj.read().decode('utf-8')
+            file_obj.seek(0)  # Reset for the view to read later
+
+            reader = csv.DictReader(io.StringIO(text_content))
             rows = list(reader)
 
             if not rows:
                 raise serializers.ValidationError("CSV file is empty")
 
-            # Store for use in create()
             data['_parsed_rows'] = rows
             data['_field_names'] = list(rows[0].keys()) if rows else []
 
@@ -98,8 +97,6 @@ class IngestionUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError("File must be UTF-8 encoded")
         except csv.Error as e:
             raise serializers.ValidationError(f"Invalid CSV format: {str(e)}")
-        finally:
-            file_obj.seek(0)  # Reset for later processing
 
         data['_data_source'] = data_source
         return data

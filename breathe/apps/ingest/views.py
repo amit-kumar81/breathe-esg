@@ -197,7 +197,7 @@ class IngestionViewSet(viewsets.ViewSet):
             total_rows = raw_ingestion.line_count
             parsed_count = result['parsed_count']
             parsing_errors = result['parsing_errors']
-            empty_rows = result['empty_rows']
+            empty_rows = []
 
             logger.info(f"Parse complete: {parsed_count} parsed, {len(parsing_errors)} errors")
 
