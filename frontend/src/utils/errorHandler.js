@@ -21,9 +21,8 @@ export function getErrorMessage(error) {
   const { data, status } = error.response
 
   // Handle DRF error responses
-  if (data.detail) {
-    return data.detail
-  }
+  if (data.detail) return data.detail
+  if (data.error) return data.error
 
   // Handle field-level errors
   if (typeof data === 'object' && !Array.isArray(data)) {

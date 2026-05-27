@@ -131,7 +131,7 @@ class IngestionViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error creating RawIngestion: {str(e)}", exc_info=True)
             return Response(
-                {"error": "Failed to process file. Please try again."},
+                {"error": f"Upload failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

@@ -74,11 +74,9 @@ export function useUploadCSV() {
       formData.append('file', file)
       formData.append('data_source_id', dataSourceId)
 
-      const response = await apiClient.post('/ingest/upload/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
+      // Do NOT set Content-Type manually — axios sets it with the correct
+      // multipart boundary automatically when the body is FormData.
+      const response = await apiClient.post('/ingest/upload/', formData)
 
       return response.data
     },
