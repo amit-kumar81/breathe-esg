@@ -112,6 +112,10 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# File upload limits — default is 2.5 MB which is too small for 10 MB CSVs
+DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024   # 15 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024   # 15 MB
+
 # Static files — whitenoise serves them in production without a CDN
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

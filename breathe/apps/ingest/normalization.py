@@ -168,19 +168,16 @@ def normalize_ingestion(raw_ingestion):
         logger.info(f"Clearing {old_normalized} existing NormalizedRecords")
         NormalizedRecord.objects.filter(ingestion_id=raw_ingestion).delete()
 
-    # Normalize each ParsedRecord
-    total_normalized = 0
+    # Normalize all records, collect results, bulk_create in one query
+    records_to_create = []
     valid_count = 0
     invalid_count = 0
     normalization_errors = []
 
     for parsed_record in parsed_records:
         try:
-            # Normalize this record
             result = normalize_parsed_record(parsed_record, data_source)
-
-            # Create NormalizedRecord
-            normalized_record = NormalizedRecord.objects.create(
+            records_to_create.append(NormalizedRecord(
                 ingestion_id=raw_ingestion,
                 parsed_record_id=parsed_record,
                 tenant_id=raw_ingestion.tenant_id,
@@ -194,24 +191,19 @@ def normalize_ingestion(raw_ingestion):
                 validation_errors=result['validation_errors'],
                 data_quality_flags=result['data_quality_flags'],
                 is_valid=result['is_valid']
-            )
-
-            total_normalized += 1
+            ))
             if result['is_valid']:
                 valid_count += 1
             else:
                 invalid_count += 1
-
-            logger.debug(f"Created NormalizedRecord {normalized_record.id} for row {parsed_record.source_row_number}")
-
         except Exception as e:
             error_msg = f"Error normalizing row {parsed_record.source_row_number}: {str(e)}"
-            normalization_errors.append({
-                "row_number": parsed_record.source_row_number,
-                "error": error_msg
-            })
+            normalization_errors.append({"row_number": parsed_record.source_row_number, "error": error_msg})
             logger.error(error_msg, exc_info=True)
             invalid_count += 1
+
+    NormalizedRecord.objects.bulk_create(records_to_create, batch_size=500)
+    total_normalized = len(records_to_create)
 
     logger.info(
         f"Normalization complete: {total_normalized} normalized, "

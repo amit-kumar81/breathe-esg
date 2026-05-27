@@ -264,26 +264,19 @@ def parse_raw_ingestion(raw_ingestion):
         logger.info(f"Clearing {old_count} existing ParsedRecords for ingestion {raw_ingestion.id}")
         ParsedRecord.objects.filter(ingestion_id=raw_ingestion).delete()
 
-    # Create ParsedRecords for each row
-    parsed_count = 0
-    for row_num, row_data in enumerate(rows, start=1):
-        try:
-            parsed_record = ParsedRecord.objects.create(
-                ingestion_id=raw_ingestion,
-                tenant_id=raw_ingestion.tenant_id,
-                source_row_number=row_num,
-                raw_values=dict(row_data),
-                parsing_errors=[]
-            )
-            parsed_count += 1
-            logger.debug(f"Created ParsedRecord {parsed_record.id} for row {row_num}")
-
-        except Exception as e:
-            error_msg = f"Failed to create ParsedRecord for row {row_num}: {str(e)}"
-            parsing_errors.append(error_msg)
-            logger.error(error_msg, exc_info=True)
-            continue
-
+    # Build all ParsedRecord objects then bulk_create in one query
+    records_to_create = [
+        ParsedRecord(
+            ingestion_id=raw_ingestion,
+            tenant_id=raw_ingestion.tenant_id,
+            source_row_number=row_num,
+            raw_values=dict(row_data),
+            parsing_errors=[]
+        )
+        for row_num, row_data in enumerate(rows, start=1)
+    ]
+    ParsedRecord.objects.bulk_create(records_to_create, batch_size=500)
+    parsed_count = len(records_to_create)
     logger.info(f"Parsing complete: {parsed_count} ParsedRecords created, {len(parsing_errors)} errors")
 
     return {
