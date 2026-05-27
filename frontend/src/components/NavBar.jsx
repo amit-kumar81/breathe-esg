@@ -5,7 +5,7 @@
  * Only shown when user is authenticated.
  */
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, NavLink } from 'react-router-dom'
 import { useCurrentUser, useLogout } from '../hooks/useAuth'
 
 function NavBar() {
@@ -23,6 +23,11 @@ function NavBar() {
         {/* Logo/Title */}
         <div style={styles.left}>
           <h1 style={styles.title}>Breathe ESG</h1>
+          <nav style={styles.nav}>
+            <NavLink to="/dashboard" style={navLinkStyle}>Dashboard</NavLink>
+            <NavLink to="/upload" style={navLinkStyle}>Upload</NavLink>
+            <NavLink to="/review" style={navLinkStyle}>Review</NavLink>
+          </nav>
         </div>
 
         {/* User Info and Actions */}
@@ -53,6 +58,16 @@ function NavBar() {
   )
 }
 
+const navLinkStyle = ({ isActive }) => ({
+  color: isActive ? '#fff' : '#bbb',
+  textDecoration: 'none',
+  fontSize: '14px',
+  fontWeight: isActive ? '600' : '400',
+  padding: '4px 8px',
+  borderRadius: '4px',
+  backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent'
+})
+
 const styles = {
   navbar: {
     backgroundColor: '#333',
@@ -69,7 +84,12 @@ const styles = {
   },
   left: {
     display: 'flex',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: '24px'
+  },
+  nav: {
+    display: 'flex',
+    gap: '8px'
   },
   title: {
     margin: '0',

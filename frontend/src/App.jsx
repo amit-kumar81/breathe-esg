@@ -13,12 +13,10 @@ import NavBar from './components/NavBar'
 
 // Pages
 import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
 import UploadPage from './pages/UploadPage'
 import IngestionReviewPage from './pages/IngestionReviewPage'
-
-// Pages (will be created in Phase 3.4+)
-// import DashboardPage from './pages/DashboardPage'
-// import ReviewPage from './pages/ReviewPage'
+import ReviewPage from './pages/ReviewPage'
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -52,11 +50,10 @@ function App() {
                     <NavBar />
                     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
                       <Routes>
+                        <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/upload" element={<UploadPage />} />
                         <Route path="/ingest/:id" element={<IngestionReviewPage />} />
-                        <Route path="/dashboard" element={<div>Dashboard (Coming in 3.4)</div>} />
-                        <Route path="/review" element={<div>Review (Coming in 3.4)</div>} />
-                        <Route path="/emissions" element={<div>Emissions (Coming in 3.4)</div>} />
+                        <Route path="/review" element={<ReviewPage />} />
 
                         {/* Default redirect */}
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
