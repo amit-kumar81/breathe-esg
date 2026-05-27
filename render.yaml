@@ -12,8 +12,6 @@ services:
     dockerfilePath: ./Dockerfile.backend
     healthCheckPath: /health/
     plan: free
-    # Runs migrations before the new version starts serving traffic (zero-downtime)
-    preDeployCommand: "python manage.py migrate --noinput"
     envVars:
       - key: DEBUG
         value: "False"
