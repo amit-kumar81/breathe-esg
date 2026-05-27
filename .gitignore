@@ -42,3 +42,6 @@ htmlcov/
 
 # Docker — .dockerignore is committed so Docker builds stay fast
 .env.docker
+
+# Sample data files (local use only, not needed in repo)
+sap_samples/
