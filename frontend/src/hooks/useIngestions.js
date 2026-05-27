@@ -57,7 +57,8 @@ export function useIngestionDetail(ingestionId) {
       const response = await apiClient.get(`/ingest/${ingestionId}/`)
       return response.data
     },
-    staleTime: 1000 * 30,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     enabled: !!ingestionId
   })
 }
@@ -125,10 +126,10 @@ export function useNormalize(ingestionId) {
       return response.data
     },
     onSuccess: () => {
-      // Invalidate both list and detail queries
+      // Force immediate refetch (not just mark stale) so the page updates
+      // even if the window is not focused
+      queryClient.refetchQueries({ queryKey: ['ingestions', ingestionId], exact: true })
       queryClient.invalidateQueries({ queryKey: ['ingestions'] })
-      queryClient.invalidateQueries({ queryKey: ['ingestions', ingestionId] })
-      // Also invalidate emissions since new records may be auto-approved
       queryClient.invalidateQueries({ queryKey: ['emissions'] })
     }
   })
