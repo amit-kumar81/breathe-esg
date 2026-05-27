@@ -90,24 +90,26 @@ function IngestionReviewPage() {
       {/* Sample Parsed Records */}
       {ingestion.sample_parsed_records && ingestion.sample_parsed_records.length > 0 && (
         <div style={styles.section}>
-          <h2>Parsed Records ({ingestion.sample_parsed_records.length})</h2>
+          <h2>Parsed Records (sample of {ingestion.sample_parsed_records.length})</h2>
           <div style={styles.table}>
             <table>
               <thead>
                 <tr>
-                  <th>Facility</th>
-                  <th>Scope 1</th>
-                  <th>Year</th>
-                  <th>Status</th>
+                  <th>#</th>
+                  {Object.keys(ingestion.sample_parsed_records[0].raw_values || {}).map(col => (
+                    <th key={col}>{col}</th>
+                  ))}
+                  <th>Errors</th>
                 </tr>
               </thead>
               <tbody>
                 {ingestion.sample_parsed_records.map((record, idx) => (
                   <tr key={idx}>
-                    <td>{record.raw_values?.facility || 'N/A'}</td>
-                    <td>{record.raw_values?.scope_1_emissions || 'N/A'}</td>
-                    <td>{record.raw_values?.year || 'N/A'}</td>
-                    <td>{record.validation_status || 'OK'}</td>
+                    <td>{record.source_row_number}</td>
+                    {Object.values(record.raw_values || {}).map((val, i) => (
+                      <td key={i}>{val ?? 'N/A'}</td>
+                    ))}
+                    <td>{record.parsing_errors?.length > 0 ? record.parsing_errors.join(', ') : '—'}</td>
                   </tr>
                 ))}
               </tbody>
