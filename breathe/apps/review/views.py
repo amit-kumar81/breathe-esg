@@ -25,8 +25,6 @@ from breathe.apps.review.serializers import (
     ApprovalActionSerializer,
     BatchApprovalSerializer
 )
-from breathe.apps.audit.models import AuditLog
-from breathe.apps.emissions.models import EmissionsDataPoint
 
 
 class ReviewTaskViewSet(viewsets.ModelViewSet):
@@ -88,17 +86,17 @@ class ReviewTaskViewSet(viewsets.ModelViewSet):
         """POST /api/review/{id}/approve/ - Approve record"""
         review_task = self.get_object()
         serializer = ApprovalActionSerializer(data=request.data)
-        
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
         with transaction.atomic():
             review_task.status = 'APPROVED'
             review_task.approved_by = request.user
             review_task.approved_at = timezone.now()
             review_task.analyst_notes = serializer.validated_data.get('notes', '')
             review_task.save()
-            
+
             ReviewApproval.objects.create(
                 review_task_id=review_task,
                 tenant_id=review_task.tenant_id,
@@ -106,32 +104,7 @@ class ReviewTaskViewSet(viewsets.ModelViewSet):
                 decision='APPROVED',
                 notes=serializer.validated_data.get('notes', '')
             )
-            
-            if review_task.normalized_record_id:
-                emissions, created = EmissionsDataPoint.objects.get_or_create(
-                    normalized_record_id=review_task.normalized_record_id,
-                    defaults={
-                        'tenant_id': review_task.tenant_id,
-                        'normalized_values': review_task.normalized_record_id.normalized_values,
-                        'validation_errors': review_task.normalized_record_id.validation_errors,
-                        'data_quality_flags': review_task.normalized_record_id.data_quality_flags,
-                        'is_valid': review_task.normalized_record_id.is_valid,
-                        'data_quality_score': review_task.normalized_record_id.data_quality_score,
-                        'review_status': 'APPROVED',
-                        'reviewed_at': timezone.now()
-                    }
-                )
-                
-                AuditLog.objects.create(
-                    object_type='EmissionsDataPoint',
-                    object_id=str(emissions.id),
-                    tenant_id=review_task.tenant_id,
-                    action='UPDATE' if not created else 'CREATE',
-                    change_summary={'review_status': 'APPROVED'},
-                    user_id=request.user,
-                    ip_address=self._get_client_ip(request)
-                )
-        
+
         return Response({'status': 'approved', 'message': 'Record approved'})
     
     @action(detail=True, methods=['post'])
