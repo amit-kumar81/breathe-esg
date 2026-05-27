@@ -6,13 +6,22 @@
  */
 
 import { useParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useIngestionDetail, useParse, useNormalize } from '../hooks/useIngestions'
 
 function IngestionReviewPage() {
   const { id: ingestionId } = useParams()
   const { data: ingestion, isLoading } = useIngestionDetail(ingestionId)
-  const { mutate: parse, isPending: isParsing } = useParse(ingestionId)
-  const { mutate: normalize, isPending: isNormalizing, isError: normalizeError, error: normalizeErrorDetail } = useNormalize(ingestionId)
+  const { mutate: parse, isPending: isParsing, isSuccess: parseSuccess } = useParse(ingestionId)
+  const { mutate: normalize, isPending: isNormalizing, isError: normalizeError, error: normalizeErrorDetail, isSuccess: normalizeSuccess } = useNormalize(ingestionId)
+
+  // Reload the page after parse or normalize so the fresh status is fetched
+  // from the server without relying on React Query cache invalidation
+  useEffect(() => {
+    if (parseSuccess || normalizeSuccess) {
+      window.location.reload()
+    }
+  }, [parseSuccess, normalizeSuccess])
 
   if (isLoading) {
     return <div style={styles.container}>Loading ingestion...</div>
@@ -60,7 +69,7 @@ function IngestionReviewPage() {
       <div style={styles.actions}>
         {!isParsed && (
           <button
-            onClick={() => parse(undefined, { onSuccess: () => window.location.reload() })}
+            onClick={() => parse()}
             disabled={isParsing}
             style={{
               ...styles.button,
@@ -75,9 +84,7 @@ function IngestionReviewPage() {
         {isParsed && !isNormalized && (
           <div>
             <button
-              onClick={() => normalize(undefined, {
-                onSuccess: () => window.location.reload()
-              })}
+              onClick={() => normalize()}
               disabled={isNormalizing}
               style={{
                 ...styles.button,
