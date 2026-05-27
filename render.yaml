@@ -26,9 +26,6 @@ services:
         value: "breathe-backend.onrender.com"
       - key: CORS_ALLOWED_ORIGINS
         value: "https://breathe-frontend.onrender.com"
-      # Optional: set in Render dashboard after creating a Sentry project
-      - key: SENTRY_DSN
-        sync: false
 
   # React frontend — Static site (free, no server needed)
   - type: web
