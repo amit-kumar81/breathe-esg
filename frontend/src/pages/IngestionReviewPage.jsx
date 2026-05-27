@@ -60,7 +60,7 @@ function IngestionReviewPage() {
       <div style={styles.actions}>
         {!isParsed && (
           <button
-            onClick={() => parse()}
+            onClick={() => parse(undefined, { onSuccess: () => window.location.reload() })}
             disabled={isParsing}
             style={{
               ...styles.button,
@@ -75,7 +75,9 @@ function IngestionReviewPage() {
         {isParsed && !isNormalized && (
           <div>
             <button
-              onClick={() => normalize()}
+              onClick={() => normalize(undefined, {
+                onSuccess: () => window.location.reload()
+              })}
               disabled={isNormalizing}
               style={{
                 ...styles.button,
