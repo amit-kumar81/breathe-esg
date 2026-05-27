@@ -35,15 +35,22 @@ export function useEmissions(options = {}) {
 
 /**
  * Fetch emissions summary/dashboard metrics
+ *
+ * @param {Object} filters - { year, facility, scope } — 'all' means no filter
  */
-export function useEmissionsSummary() {
+export function useEmissionsSummary(filters = {}) {
   return useQuery({
-    queryKey: ['emissions', 'summary'],
+    queryKey: ['emissions', 'summary', filters],
     queryFn: async () => {
-      const response = await apiClient.get('/emissions/summary/')
+      const params = new URLSearchParams()
+      if (filters.year && filters.year !== 'all') params.append('year', filters.year)
+      if (filters.facility && filters.facility !== 'all') params.append('facility_name', filters.facility)
+      if (filters.scope && filters.scope !== 'all') params.append('scope', filters.scope.toUpperCase())
+
+      const response = await apiClient.get(`/emissions/summary/?${params.toString()}`)
       return response.data
     },
-    staleTime: 1000 * 60 * 5 // 5 minutes
+    staleTime: 0
   })
 }
 

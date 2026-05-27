@@ -105,27 +105,44 @@ class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
     def summary(self, request):
         """
         GET /api/emissions/summary/
+        Optional query params: year, facility_name, scope (SCOPE_1/SCOPE_2/SCOPE_3)
 
         Returns summary statistics shaped for the dashboard charts.
+        available_years and available_facilities always return the full
+        unfiltered set so the dropdowns stay populated.
         """
-        queryset = self.get_queryset()
+        all_qs = self.get_queryset()
 
-        total_emissions = queryset.aggregate(t=Sum('emissions_value'))['t'] or 0
-        record_count = queryset.count()
-        valid_count = queryset.filter(is_valid=True).count()
-        facility_count = queryset.values('facility_name').distinct().count()
-        average_quality_score = round(valid_count / record_count * 100, 1) if record_count else 0
-
+        # available_years / available_facilities always show everything
         available_years = list(
-            queryset.order_by('year').values_list('year', flat=True).distinct()
+            all_qs.order_by('year').values_list('year', flat=True).distinct()
         )
         available_facilities = sorted(
-            queryset.order_by('facility_name')
+            all_qs.order_by('facility_name')
             .values_list('facility_name', flat=True)
             .distinct()
         )
 
-        # Bar chart: [{scope, value}]
+        # Apply filters to the metrics queryset
+        queryset = all_qs
+        year = request.query_params.get('year')
+        facility_name = request.query_params.get('facility_name')
+        scope = request.query_params.get('scope')
+
+        if year:
+            queryset = queryset.filter(year=int(year))
+        if facility_name:
+            queryset = queryset.filter(facility_name=facility_name)
+        if scope:
+            queryset = queryset.filter(scope=scope)
+
+        total_emissions = queryset.aggregate(t=Sum('emissions_value'))['t'] or 0
+        record_count = queryset.count()
+        valid_count = queryset.filter(is_valid=True).count()
+        facility_count = queryset.order_by('facility_name').values('facility_name').distinct().count()
+        average_quality_score = round(valid_count / record_count * 100, 1) if record_count else 0
+
+        # Bar chart: [{scope, value}] — respect scope filter
         scope_labels = [('SCOPE_1', 'Scope 1'), ('SCOPE_2', 'Scope 2'), ('SCOPE_3', 'Scope 3')]
         by_scope = [
             {
@@ -136,11 +153,12 @@ class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
         ]
 
         # Line chart: [{year, scope_1, scope_2, scope_3}]
+        chart_years = list(queryset.order_by('year').values_list('year', flat=True).distinct())
         by_year = []
-        for year in available_years:
-            year_qs = queryset.filter(year=year)
+        for y in chart_years:
+            year_qs = queryset.filter(year=y)
             by_year.append({
-                'year': year,
+                'year': y,
                 'scope_1': float(year_qs.filter(scope='SCOPE_1').aggregate(t=Sum('emissions_value'))['t'] or 0),
                 'scope_2': float(year_qs.filter(scope='SCOPE_2').aggregate(t=Sum('emissions_value'))['t'] or 0),
                 'scope_3': float(year_qs.filter(scope='SCOPE_3').aggregate(t=Sum('emissions_value'))['t'] or 0),
