@@ -159,6 +159,47 @@ def normalize_ingestion(raw_ingestion):
     data_source = raw_ingestion.data_source_id
     parsed_records = ParsedRecord.objects.filter(ingestion_id=raw_ingestion)
 
+    # Auto-populate field_mapping from CSV headers if it's still empty.
+    # Tries common naming conventions: Plant_Name→facility_name, Scope1_MT→scope_1_emissions, etc.
+    if not data_source.field_mapping:
+        import csv as csv_module, io as io_module
+        csv_text = raw_ingestion.raw_csv_content
+        reader = csv_module.reader(io_module.StringIO(csv_text))
+        headers = next(reader, [])
+
+        AUTO_MAP = {
+            # facility
+            'plant_name': 'facility_name', 'facility': 'facility_name',
+            'facility_name': 'facility_name', 'site': 'facility_name',
+            'location': 'facility_name', 'plant': 'facility_name',
+            # scope 1
+            'scope1_mt': 'scope_1_emissions', 'scope1': 'scope_1_emissions',
+            'scope_1': 'scope_1_emissions', 'scope_1_emissions': 'scope_1_emissions',
+            'scope1_mtco2e': 'scope_1_emissions', 'direct_emissions': 'scope_1_emissions',
+            # scope 2
+            'scope2_mt': 'scope_2_emissions', 'scope2': 'scope_2_emissions',
+            'scope_2': 'scope_2_emissions', 'scope_2_emissions': 'scope_2_emissions',
+            'scope2_mtco2e': 'scope_2_emissions', 'indirect_emissions': 'scope_2_emissions',
+            # scope 3
+            'scope3_mt': 'scope_3_emissions', 'scope3': 'scope_3_emissions',
+            'scope_3': 'scope_3_emissions', 'scope_3_emissions': 'scope_3_emissions',
+            'scope3_mtco2e': 'scope_3_emissions',
+            # year
+            'year': 'reporting_year', 'reporting_year': 'reporting_year',
+            'report_year': 'reporting_year', 'fiscal_year': 'reporting_year',
+        }
+
+        detected = {}
+        for h in headers:
+            std = AUTO_MAP.get(h.lower().strip())
+            if std:
+                detected[h] = std
+
+        if detected:
+            data_source.field_mapping = detected
+            data_source.save(update_fields=['field_mapping'])
+            logger.info(f"Auto-detected field_mapping for DataSource {data_source.id}: {detected}")
+
     total_parsed = parsed_records.count()
     logger.info(f"Starting normalization for ingestion {raw_ingestion.id}: {total_parsed} parsed records")
 

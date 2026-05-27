@@ -12,7 +12,7 @@ function IngestionReviewPage() {
   const { id: ingestionId } = useParams()
   const { data: ingestion, isLoading } = useIngestionDetail(ingestionId)
   const { mutate: parse, isPending: isParsing } = useParse(ingestionId)
-  const { mutate: normalize, isPending: isNormalizing } = useNormalize(ingestionId)
+  const { mutate: normalize, isPending: isNormalizing, isError: normalizeError, error: normalizeErrorDetail } = useNormalize(ingestionId)
 
   if (isLoading) {
     return <div style={styles.container}>Loading ingestion...</div>
@@ -73,17 +73,24 @@ function IngestionReviewPage() {
         )}
 
         {isParsed && !isNormalized && (
-          <button
-            onClick={() => normalize()}
-            disabled={isNormalizing}
-            style={{
-              ...styles.button,
-              ...styles.primaryButton,
-              opacity: isNormalizing ? 0.6 : 1
-            }}
-          >
-            {isNormalizing ? 'Normalizing...' : 'Normalize & Validate'}
-          </button>
+          <div>
+            <button
+              onClick={() => normalize()}
+              disabled={isNormalizing}
+              style={{
+                ...styles.button,
+                ...styles.primaryButton,
+                opacity: isNormalizing ? 0.6 : 1
+              }}
+            >
+              {isNormalizing ? 'Normalizing...' : 'Normalize & Validate'}
+            </button>
+            {normalizeError && (
+              <div style={styles.errorBox}>
+                Normalization failed: {normalizeErrorDetail?.response?.data?.error || normalizeErrorDetail?.message || 'Unknown error'}
+              </div>
+            )}
+          </div>
         )}
 
         {isNormalized && (
@@ -258,6 +265,15 @@ const styles = {
     border: '1px solid #c3e6cb',
     borderRadius: '4px',
     color: '#155724',
+    fontSize: '14px'
+  },
+  errorBox: {
+    marginTop: '10px',
+    padding: '12px',
+    backgroundColor: '#f8d7da',
+    border: '1px solid #f5c6cb',
+    borderRadius: '4px',
+    color: '#721c24',
     fontSize: '14px'
   },
   section: {
