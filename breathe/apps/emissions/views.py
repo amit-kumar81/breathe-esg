@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Avg
+from django.db.models import Avg, Sum
 
 from breathe.apps.emissions.models import EmissionsDataPoint
 from breathe.apps.emissions.serializers import (
@@ -29,26 +29,26 @@ from breathe.apps.audit.models import AuditLog
 class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for EmissionsDataPoint CRUD operations.
-    
+
     List endpoint:
         GET /api/emissions/
-        Supports filtering by: year, review_status, data_source, facility_name
-        Supports sorting by: created_at, data_quality_score, year
-    
+        Supports filtering by: year, scope, data_source, facility_name
+        Supports sorting by: created_at, year, emissions_value
+
     Detail endpoint:
         GET /api/emissions/{id}/
         Returns full record with audit trail
-    
+
     Audit endpoint:
         GET /api/emissions/{id}/audit/
         Returns audit trail for this record
     """
-    
+
     queryset = EmissionsDataPoint.objects.all()
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = EmissionsDataPointFilter
-    search_fields = ['normalized_values__facility_name']
-    ordering_fields = ['created_at', 'data_quality_score', 'normalized_values__year']
+    search_fields = ['facility_name']
+    ordering_fields = ['created_at', 'year', 'emissions_value']
     ordering = ['-created_at']  # Default: newest first
     
     def get_serializer_class(self):
@@ -105,47 +105,46 @@ class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
     def summary(self, request):
         """
         GET /api/emissions/summary/
-        
-        Returns summary statistics for all EmissionsDataPoints:
-        - Total records
-        - By review_status
-        - By data_quality_score ranges
-        - By year
+
+        Returns summary statistics for all EmissionsDataPoints.
         """
         queryset = self.get_queryset()
-        
-        # Count by status
-        by_status = {}
-        for status_choice in ['PENDING', 'APPROVED', 'REJECTED']:
-            by_status[status_choice] = queryset.filter(review_status=status_choice).count()
-        
-        # Count by data quality score range
-        quality_ranges = {
-            '0-20': queryset.filter(data_quality_score__gte=0, data_quality_score__lt=20).count(),
-            '20-40': queryset.filter(data_quality_score__gte=20, data_quality_score__lt=40).count(),
-            '40-60': queryset.filter(data_quality_score__gte=40, data_quality_score__lt=60).count(),
-            '60-80': queryset.filter(data_quality_score__gte=60, data_quality_score__lt=80).count(),
-            '80-100': queryset.filter(data_quality_score__gte=80, data_quality_score__lte=100).count(),
+
+        # Count by scope
+        by_scope = {}
+        for scope_choice in ['SCOPE_1', 'SCOPE_2', 'SCOPE_3']:
+            by_scope[scope_choice] = queryset.filter(scope=scope_choice).count()
+
+        # Count by year
+        years_qs = (
+            queryset.values_list('year', flat=True)
+            .distinct()
+            .order_by('-year')
+        )
+        by_year = {
+            str(y): queryset.filter(year=y).count()
+            for y in years_qs if y
         }
-        
-        # Count by year (from normalized_values)
-        years = queryset.values_list(
-            'normalized_values__year',
-            flat=True
-        ).distinct().order_by('-normalized_values__year')
-        
-        by_year = {}
-        for year in years:
-            if year:
-                by_year[str(int(year))] = queryset.filter(
-                    normalized_values__year=year
-                ).count()
-        
+
+        # Total emissions by scope
+        total_scope1 = queryset.filter(scope='SCOPE_1').aggregate(
+            total=Sum('emissions_value')
+        )['total'] or 0
+        total_scope2 = queryset.filter(scope='SCOPE_2').aggregate(
+            total=Sum('emissions_value')
+        )['total'] or 0
+        total_scope3 = queryset.filter(scope='SCOPE_3').aggregate(
+            total=Sum('emissions_value')
+        )['total'] or 0
+
         return Response({
             'total_records': queryset.count(),
-            'by_status': by_status,
-            'by_data_quality': quality_ranges,
+            'valid_records': queryset.filter(is_valid=True).count(),
+            'invalid_records': queryset.filter(is_valid=False).count(),
+            'by_scope': by_scope,
             'by_year': by_year,
-            'average_quality_score': queryset.aggregate(avg_score=Avg('data_quality_score'))['avg_score'] or 0
+            'total_scope1_mtco2e': float(total_scope1),
+            'total_scope2_mtco2e': float(total_scope2),
+            'total_scope3_mtco2e': float(total_scope3),
         })
 

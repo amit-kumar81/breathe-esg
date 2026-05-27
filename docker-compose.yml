@@ -24,7 +24,7 @@ services:
     container_name: breathe_backend
     command: >
       sh -c "python manage.py migrate --noinput &&
-             gunicorn breathe.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+             gunicorn breathe.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile - --log-level debug"
     env_file: .env.docker
     ports:
       - "8000:8000"
