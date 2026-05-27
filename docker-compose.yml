@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: breathe_postgres
+    environment:
+      POSTGRES_DB: breathe_dev
+      POSTGRES_USER: breathe_user
+      POSTGRES_PASSWORD: breathe_password_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U breathe_user -d breathe_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: breathe_backend
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn breathe.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+    env_file: .env.docker
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: breathe_frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules  # named volume keeps node_modules separate from bind mount
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
