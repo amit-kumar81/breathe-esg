@@ -174,6 +174,7 @@ class IngestionViewSet(viewsets.ViewSet):
 
         sample_parsed = list(
             ParsedRecord.objects.filter(ingestion_id=ingestion)
+            .order_by('source_row_number')
             .values('source_row_number', 'raw_values', 'parsing_errors')[:5]
         )
         sample_normalized = list(
@@ -183,12 +184,20 @@ class IngestionViewSet(viewsets.ViewSet):
         )
         valid_count = IngestNormalized.objects.filter(ingestion_id=ingestion, is_valid=True).count()
 
+        # Read CSV column order from source of truth (JSONB doesn't preserve key order)
+        import csv as csv_module, io as io_module
+        csv_columns = []
+        if ingestion.raw_csv_content:
+            reader = csv_module.reader(io_module.StringIO(ingestion.raw_csv_content))
+            csv_columns = next(reader, [])
+
         return Response({
             'id': str(ingestion.id),
             'filename': ingestion.filename,
             'line_count': ingestion.line_count,
             'step': step,
             'completion_percentage': completion_percentage,
+            'csv_columns': csv_columns,
             'sample_parsed_records': sample_parsed,
             'sample_normalized_records': sample_normalized,
             'summary': {

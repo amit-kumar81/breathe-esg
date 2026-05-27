@@ -46,7 +46,13 @@ function IngestionReviewPage() {
               width: `${ingestion.completion_percentage}%`
             }}></div>
           </div>
-          <span>{ingestion.completion_percentage}%</span>
+          <span style={styles.progressLabel}>
+            Step {ingestion.step === 'UPLOADED' ? '1' : ingestion.step === 'PARSED' ? '2' : '3'} of 3
+            &nbsp;({ingestion.completion_percentage}%)
+          </span>
+        </div>
+        <div style={styles.stepHint}>
+          Upload → Parse → Normalize
         </div>
       </div>
 
@@ -91,25 +97,27 @@ function IngestionReviewPage() {
       {ingestion.sample_parsed_records && ingestion.sample_parsed_records.length > 0 && (
         <div style={styles.section}>
           <h2>Parsed Records (sample of {ingestion.sample_parsed_records.length})</h2>
-          <div style={styles.table}>
-            <table>
+          <div style={styles.tableWrapper}>
+            <table style={styles.dataTable}>
               <thead>
                 <tr>
-                  <th>#</th>
-                  {Object.keys(ingestion.sample_parsed_records[0].raw_values || {}).map(col => (
-                    <th key={col}>{col}</th>
+                  <th style={styles.th}>#</th>
+                  {(ingestion.csv_columns || Object.keys(ingestion.sample_parsed_records[0].raw_values || {})).map(col => (
+                    <th key={col} style={styles.th}>{col}</th>
                   ))}
-                  <th>Errors</th>
+                  <th style={styles.th}>Errors</th>
                 </tr>
               </thead>
               <tbody>
                 {ingestion.sample_parsed_records.map((record, idx) => (
-                  <tr key={idx}>
-                    <td>{record.source_row_number}</td>
-                    {Object.values(record.raw_values || {}).map((val, i) => (
-                      <td key={i}>{val ?? 'N/A'}</td>
+                  <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
+                    <td style={styles.td}>{record.source_row_number}</td>
+                    {(ingestion.csv_columns || Object.keys(record.raw_values || {})).map(col => (
+                      <td key={col} style={styles.td}>{record.raw_values?.[col] ?? '—'}</td>
                     ))}
-                    <td>{record.parsing_errors?.length > 0 ? record.parsing_errors.join(', ') : '—'}</td>
+                    <td style={{...styles.td, color: record.parsing_errors?.length > 0 ? '#dc3545' : '#666'}}>
+                      {record.parsing_errors?.length > 0 ? record.parsing_errors.join(', ') : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -122,25 +130,27 @@ function IngestionReviewPage() {
       {ingestion.sample_normalized_records && ingestion.sample_normalized_records.length > 0 && (
         <div style={styles.section}>
           <h2>Normalized Records ({ingestion.sample_normalized_records.length})</h2>
-          <div style={styles.table}>
-            <table>
+          <div style={styles.tableWrapper}>
+            <table style={styles.dataTable}>
               <thead>
                 <tr>
-                  <th>Facility</th>
-                  <th>Scope 1</th>
-                  <th>Year</th>
-                  <th>Quality Score</th>
-                  <th>Valid</th>
+                  <th style={styles.th}>Facility</th>
+                  <th style={styles.th}>Scope 1 (MT)</th>
+                  <th style={styles.th}>Year</th>
+                  <th style={styles.th}>Quality Score</th>
+                  <th style={styles.th}>Valid</th>
                 </tr>
               </thead>
               <tbody>
                 {ingestion.sample_normalized_records.map((record, idx) => (
-                  <tr key={idx}>
-                    <td>{record.facility_name}</td>
-                    <td>{record.scope_1_emissions}</td>
-                    <td>{record.reporting_year}</td>
-                    <td>{record.data_quality_score}</td>
-                    <td>{record.is_valid ? '✓' : '✗'}</td>
+                  <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
+                    <td style={styles.td}>{record.facility_name ?? '—'}</td>
+                    <td style={styles.td}>{record.scope_1_emissions ?? '—'}</td>
+                    <td style={styles.td}>{record.reporting_year ?? '—'}</td>
+                    <td style={styles.td}>{record.data_quality_score ?? '—'}</td>
+                    <td style={{...styles.td, color: record.is_valid ? '#28a745' : '#dc3545', fontWeight: '600'}}>
+                      {record.is_valid ? '✓ Valid' : '✗ Invalid'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -256,6 +266,48 @@ const styles = {
   table: {
     overflowX: 'auto',
     marginTop: '15px'
+  },
+  tableWrapper: {
+    overflowX: 'auto',
+    marginTop: '15px',
+    borderRadius: '6px',
+    border: '1px solid #dee2e6'
+  },
+  dataTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '13px'
+  },
+  th: {
+    backgroundColor: '#f1f3f5',
+    padding: '10px 14px',
+    textAlign: 'left',
+    fontWeight: '600',
+    color: '#495057',
+    borderBottom: '2px solid #dee2e6',
+    whiteSpace: 'nowrap'
+  },
+  td: {
+    padding: '9px 14px',
+    borderBottom: '1px solid #e9ecef',
+    color: '#333',
+    whiteSpace: 'nowrap'
+  },
+  trEven: {
+    backgroundColor: '#ffffff'
+  },
+  trOdd: {
+    backgroundColor: '#f8f9fa'
+  },
+  progressLabel: {
+    fontSize: '13px',
+    color: '#495057',
+    minWidth: '120px'
+  },
+  stepHint: {
+    fontSize: '12px',
+    color: '#888',
+    marginTop: '6px'
   },
   summaryBox: {
     backgroundColor: '#f8f9fa',
