@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Avg, Sum
+from django.db.models import Avg, Sum, Count
 
 from breathe.apps.emissions.models import EmissionsDataPoint
 from breathe.apps.emissions.serializers import (
@@ -106,45 +106,54 @@ class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
         """
         GET /api/emissions/summary/
 
-        Returns summary statistics for all EmissionsDataPoints.
+        Returns summary statistics shaped for the dashboard charts.
         """
         queryset = self.get_queryset()
 
-        # Count by scope
-        by_scope = {}
-        for scope_choice in ['SCOPE_1', 'SCOPE_2', 'SCOPE_3']:
-            by_scope[scope_choice] = queryset.filter(scope=scope_choice).count()
+        total_emissions = queryset.aggregate(t=Sum('emissions_value'))['t'] or 0
+        record_count = queryset.count()
+        valid_count = queryset.filter(is_valid=True).count()
+        facility_count = queryset.values('facility_name').distinct().count()
+        average_quality_score = round(valid_count / record_count * 100, 1) if record_count else 0
 
-        # Count by year
-        years_qs = (
-            queryset.values_list('year', flat=True)
-            .distinct()
-            .order_by('-year')
+        available_years = list(
+            queryset.order_by('year').values_list('year', flat=True).distinct()
         )
-        by_year = {
-            str(y): queryset.filter(year=y).count()
-            for y in years_qs if y
-        }
+        available_facilities = sorted(
+            queryset.order_by('facility_name')
+            .values_list('facility_name', flat=True)
+            .distinct()
+        )
 
-        # Total emissions by scope
-        total_scope1 = queryset.filter(scope='SCOPE_1').aggregate(
-            total=Sum('emissions_value')
-        )['total'] or 0
-        total_scope2 = queryset.filter(scope='SCOPE_2').aggregate(
-            total=Sum('emissions_value')
-        )['total'] or 0
-        total_scope3 = queryset.filter(scope='SCOPE_3').aggregate(
-            total=Sum('emissions_value')
-        )['total'] or 0
+        # Bar chart: [{scope, value}]
+        scope_labels = [('SCOPE_1', 'Scope 1'), ('SCOPE_2', 'Scope 2'), ('SCOPE_3', 'Scope 3')]
+        by_scope = [
+            {
+                'scope': label,
+                'value': float(queryset.filter(scope=code).aggregate(t=Sum('emissions_value'))['t'] or 0)
+            }
+            for code, label in scope_labels
+        ]
+
+        # Line chart: [{year, scope_1, scope_2, scope_3}]
+        by_year = []
+        for year in available_years:
+            year_qs = queryset.filter(year=year)
+            by_year.append({
+                'year': year,
+                'scope_1': float(year_qs.filter(scope='SCOPE_1').aggregate(t=Sum('emissions_value'))['t'] or 0),
+                'scope_2': float(year_qs.filter(scope='SCOPE_2').aggregate(t=Sum('emissions_value'))['t'] or 0),
+                'scope_3': float(year_qs.filter(scope='SCOPE_3').aggregate(t=Sum('emissions_value'))['t'] or 0),
+            })
 
         return Response({
-            'total_records': queryset.count(),
-            'valid_records': queryset.filter(is_valid=True).count(),
-            'invalid_records': queryset.filter(is_valid=False).count(),
+            'total_emissions': float(total_emissions),
+            'facility_count': facility_count,
+            'record_count': record_count,
+            'average_quality_score': average_quality_score,
+            'available_years': available_years,
+            'available_facilities': available_facilities,
             'by_scope': by_scope,
             'by_year': by_year,
-            'total_scope1_mtco2e': float(total_scope1),
-            'total_scope2_mtco2e': float(total_scope2),
-            'total_scope3_mtco2e': float(total_scope3),
         })
 

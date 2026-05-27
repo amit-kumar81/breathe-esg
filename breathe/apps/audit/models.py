@@ -117,8 +117,8 @@ class AuditLog(models.Model):
         Raises:
             ValueError: If trying to update an existing AuditLog (immutable)
         """
-        if self.pk and self.id:
-            # Trying to update an existing AuditLog
+        if not self._state.adding:
+            # _state.adding is False only when updating an existing DB row
             raise ValueError(
                 "AuditLog entries are immutable and cannot be modified. "
                 "Create a new entry instead."

@@ -13,6 +13,8 @@ Design Philosophy:
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from threading import local
+import uuid
+from decimal import Decimal
 
 from breathe.apps.audit.models import AuditLog
 from breathe.apps.emissions.models import EmissionsDataPoint
@@ -103,9 +105,15 @@ def _serialize_instance(instance):
             value = getattr(instance, field.name, None)
         
         # Convert non-JSON-serializable types
-        if hasattr(value, 'isoformat'):  # datetime, date, time
+        if value is None or isinstance(value, (bool, int, float, str, dict, list)):
+            pass
+        elif hasattr(value, 'isoformat'):
             value = value.isoformat()
-        elif hasattr(value, '__dict__') and not isinstance(value, dict):
+        elif isinstance(value, uuid.UUID):
+            value = str(value)
+        elif isinstance(value, Decimal):
+            value = float(value)
+        else:
             value = str(value)
         
         data[field.name] = value

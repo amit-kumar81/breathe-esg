@@ -247,9 +247,44 @@ def normalize_ingestion(raw_ingestion):
     NormalizedRecord.objects.bulk_create(records_to_create, batch_size=500)
     total_normalized = len(records_to_create)
 
+    # Promote valid NormalizedRecords → EmissionsDataPoint (the analytics layer)
+    from breathe.apps.emissions.models import EmissionsDataPoint
+
+    # Idempotent: clear any existing EmissionsDataPoints from this ingestion
+    EmissionsDataPoint.objects.filter(
+        parsed_record_id__ingestion_id=raw_ingestion
+    ).delete()
+
+    emission_points = []
+    scope_fields = [
+        ('scope_1_emissions', 'SCOPE_1'),
+        ('scope_2_emissions', 'SCOPE_2'),
+        ('scope_3_emissions', 'SCOPE_3'),
+    ]
+    for nr in NormalizedRecord.objects.filter(ingestion_id=raw_ingestion):
+        for field_name, scope_code in scope_fields:
+            value = getattr(nr, field_name)
+            if value is not None:
+                emission_points.append(EmissionsDataPoint(
+                    tenant_id=raw_ingestion.tenant_id,
+                    parsed_record_id=nr.parsed_record_id,
+                    data_source_id=raw_ingestion.data_source_id,
+                    facility_name=nr.facility_name or '',
+                    scope=scope_code,
+                    emissions_value=value,
+                    emissions_unit='mtCO2e',
+                    year=nr.reporting_year or 0,
+                    is_valid=nr.is_valid,
+                    normalized_values=nr.normalized_values,
+                    validation_errors=nr.validation_errors,
+                    data_quality_flags=nr.data_quality_flags,
+                ))
+
+    EmissionsDataPoint.objects.bulk_create(emission_points, batch_size=500)
     logger.info(
         f"Normalization complete: {total_normalized} normalized, "
-        f"{valid_count} valid, {invalid_count} invalid"
+        f"{valid_count} valid, {invalid_count} invalid, "
+        f"{len(emission_points)} EmissionsDataPoints created"
     )
 
     return {
