@@ -126,9 +126,9 @@ export function useNormalize(ingestionId) {
       return response.data
     },
     onSuccess: () => {
-      // Force immediate refetch (not just mark stale) so the page updates
-      // even if the window is not focused
-      queryClient.refetchQueries({ queryKey: ['ingestions', ingestionId], exact: true })
+      // Remove the cached entry so React Query must fetch fresh data
+      // (refetchQueries alone can serve stale cache in some v5 edge cases)
+      queryClient.removeQueries({ queryKey: ['ingestions', ingestionId], exact: true })
       queryClient.invalidateQueries({ queryKey: ['ingestions'] })
       queryClient.invalidateQueries({ queryKey: ['emissions'] })
     }

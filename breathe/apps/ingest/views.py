@@ -384,7 +384,7 @@ class IngestionViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error normalizing ingestion {pk}: {str(e)}", exc_info=True)
             return Response(
-                {"error": "Failed to normalize ingestion. Please try again."},
+                {"error": f"Normalization failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
