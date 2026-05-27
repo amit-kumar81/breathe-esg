@@ -76,25 +76,47 @@ class Command(BaseCommand):
             defaults={'tenant': tenant, 'role': 'ADMIN', 'is_active': True}
         )
 
-        # Sample data source (needed to test uploads)
-        ds, created = DataSource.objects.get_or_create(
-            tenant_id=tenant,
-            name='Demo SAP Export',
-            defaults={
+        # Sample data sources (needed to test uploads)
+        sources = [
+            {
+                'name': 'Demo SAP Export',
                 'source_type': 'SAP',
-                'description': 'Sample SAP CSV data source for demo purposes',
+                'description': 'Sample SAP CSV export: Plant_Name, Scope1_MT, Scope2_MT, Year',
                 'field_mapping': {
                     'Plant_Name': 'facility_name',
                     'Scope1_MT': 'scope_1_emissions',
                     'Scope2_MT': 'scope_2_emissions',
                     'Year': 'reporting_year',
+                },
+            },
+            {
+                'name': 'SAP GHG Export (mtCO2e)',
+                'source_type': 'CSV',
+                'description': 'SAP GHG export: Location, Scope1_mtCO2e, Scope2_mtCO2e, Scope3_mtCO2e, Fiscal_Year',
+                'field_mapping': {
+                    'Location': 'facility_name',
+                    'Scope1_mtCO2e': 'scope_1_emissions',
+                    'Scope2_mtCO2e': 'scope_2_emissions',
+                    'Scope3_mtCO2e': 'scope_3_emissions',
+                    'Fiscal_Year': 'reporting_year',
+                },
+            },
+        ]
+
+        for source_data in sources:
+            ds, created = DataSource.objects.get_or_create(
+                tenant_id=tenant,
+                name=source_data['name'],
+                defaults={
+                    'source_type': source_data['source_type'],
+                    'description': source_data['description'],
+                    'field_mapping': source_data['field_mapping'],
                 }
-            }
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created data source: {ds.name}'))
-        else:
-            self.stdout.write(f'Data source already exists: {ds.name}')
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f'Created data source: {ds.name}'))
+            else:
+                self.stdout.write(f'Data source already exists: {ds.name}')
 
         self.stdout.write(self.style.SUCCESS('\nSeed complete.'))
         self.stdout.write('  Login: analyst@demo.com / changeme123')
