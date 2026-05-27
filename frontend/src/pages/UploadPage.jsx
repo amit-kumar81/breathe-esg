@@ -122,7 +122,7 @@ function UploadPage() {
               <p style={styles.errorText}>CSV file is required</p>
             )}
             {file && (
-              <p style={styles.successText}>✓ File selected: {file.name}</p>
+              <p style={styles.fileSelectedText}>✓ File selected: {file.name}</p>
             )}
           </div>
 
@@ -258,7 +258,7 @@ const styles = {
     fontSize: '12px',
     color: '#dc3545'
   },
-  successText: {
+  fileSelectedText: {
     margin: '0',
     fontSize: '12px',
     color: '#28a745'
