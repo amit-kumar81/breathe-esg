@@ -14,6 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Avg
 
 from breathe.apps.emissions.models import EmissionsDataPoint
 from breathe.apps.emissions.serializers import (
@@ -145,8 +146,6 @@ class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
             'by_status': by_status,
             'by_data_quality': quality_ranges,
             'by_year': by_year,
-            'average_quality_score': queryset.aggregate(
-                avg_score=__import__('django.db.models', fromlist=['Avg']).Avg('data_quality_score')
-            )['avg_score'] or 0
+            'average_quality_score': queryset.aggregate(avg_score=Avg('data_quality_score'))['avg_score'] or 0
         })
 
