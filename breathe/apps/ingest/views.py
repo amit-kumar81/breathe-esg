@@ -17,8 +17,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 
+from rest_framework import generics
 from .models import RawIngestion, DataSource
-from .serializers import IngestionUploadSerializer, RawIngestionListSerializer, RawIngestionDetailSerializer
+from .serializers import IngestionUploadSerializer, RawIngestionListSerializer, RawIngestionDetailSerializer, DataSourceSerializer
 from .utils import compute_file_hash, parse_csv_to_rows, check_idempotency
 
 logger = logging.getLogger('breathe.ingest')
@@ -319,3 +320,12 @@ class IngestionViewSet(viewsets.ViewSet):
                 {"error": "Failed to normalize ingestion. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class DataSourceListView(generics.ListAPIView):
+    """GET /api/ingest/datasources/ — list data sources for the current tenant."""
+    serializer_class = DataSourceSerializer
+
+    def get_queryset(self):
+        tenant_id = self.request.user.profile.tenant_id
+        return DataSource.objects.filter(tenant_id=tenant_id).order_by('name')

@@ -142,7 +142,7 @@ function UploadPage() {
               }}
             >
               <option value="">{dsLoading ? 'Loading...' : '— Select a data source —'}</option>
-              {(dsData?.results || dsData || []).map(ds => (
+              {(Array.isArray(dsData) ? dsData : dsData?.results || []).map(ds => (
                 <option key={ds.id} value={ds.id}>{ds.name}</option>
               ))}
             </select>
