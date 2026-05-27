@@ -58,9 +58,10 @@ function UploadPage() {
           <p style={styles.successText}>Your CSV has been uploaded and is ready for processing.</p>
 
           <div style={styles.details}>
-            <p><strong>Ingestion ID:</strong> {data.id}</p>
-            <p><strong>Status:</strong> {data.step}</p>
-            <p><strong>Data Source:</strong> {data.data_source_id}</p>
+            <p><strong>Ingestion ID:</strong> {data.ingestion_id}</p>
+            <p><strong>File:</strong> {data.filename}</p>
+            <p><strong>Rows:</strong> {data.line_count}</p>
+            <p><strong>Status:</strong> {data.status}</p>
           </div>
 
           <div style={styles.actions}>
