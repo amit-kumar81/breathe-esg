@@ -66,7 +66,7 @@ function UploadPage() {
           <div style={styles.actions}>
             <button
               style={styles.primaryButton}
-              onClick={() => navigate(`/ingest/${data.id}`)}
+              onClick={() => navigate(`/ingest/${data.ingestion_id}`)}
             >
               Review & Parse
             </button>

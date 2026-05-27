@@ -10,7 +10,7 @@ from breathe.apps.emissions.views import EmissionsDataPointViewSet
 
 # Create router and register viewsets
 router = DefaultRouter()
-router.register(r'emissions', EmissionsDataPointViewSet, basename='emissions')
+router.register(r'', EmissionsDataPointViewSet, basename='emissions')
 
 # URL patterns
 urlpatterns = [
