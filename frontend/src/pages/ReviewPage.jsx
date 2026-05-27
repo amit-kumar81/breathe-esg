@@ -109,13 +109,13 @@ function ReviewPage() {
                       backgroundColor: selectedTaskId === task.id ? '#e7f3ff' : undefined
                     }}
                   >
-                    <td style={styles.td}>{task.normalized_record?.facility_name || '—'}</td>
-                    <td style={styles.td}>{task.normalized_record?.reporting_year || '—'}</td>
-                    <td style={styles.td}>{task.normalized_record?.scope_1_emissions ?? '—'}</td>
-                    <td style={styles.td}>{task.normalized_record?.scope_2_emissions ?? '—'}</td>
+                    <td style={styles.td}>{task.facility_name || '—'}</td>
+                    <td style={styles.td}>{task.reporting_year || '—'}</td>
+                    <td style={styles.td}>{task.scope_1_emissions ?? '—'}</td>
+                    <td style={styles.td}>{task.scope_2_emissions ?? '—'}</td>
                     <td style={styles.td}>
-                      <span style={qualityBadge(task.normalized_record?.data_quality_score)}>
-                        {task.normalized_record?.data_quality_score ?? '—'}
+                      <span style={qualityBadge(task.data_quality_score)}>
+                        {task.data_quality_score ?? '—'}
                       </span>
                     </td>
                     <td style={styles.td}>
@@ -123,7 +123,7 @@ function ReviewPage() {
                     </td>
                     {role === 'ADMIN' && statusFilter !== 'PENDING' && (
                       <td style={styles.td}>
-                        {task.approved_by || task.rejected_by || '—'}
+                        {task.approved_by_name || task.rejected_by_name || '—'}
                       </td>
                     )}
                     <td style={styles.td}>
@@ -166,20 +166,20 @@ function ReviewPage() {
         <div style={styles.overlay} onClick={() => setSelectedTaskId(null)}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
-              <h2 style={{ margin: 0 }}>{selectedTask.normalized_record?.facility_name || 'Record'}</h2>
+              <h2 style={{ margin: 0 }}>{selectedTask.facility_name || 'Record'}</h2>
               <button style={styles.closeBtn} onClick={() => setSelectedTaskId(null)}>✕</button>
             </div>
 
             <div style={styles.detailGrid}>
               {[
-                ['Facility', selectedTask.normalized_record?.facility_name],
-                ['Year', selectedTask.normalized_record?.reporting_year],
-                ['Scope 1', selectedTask.normalized_record?.scope_1_emissions],
-                ['Scope 2', selectedTask.normalized_record?.scope_2_emissions],
-                ['Scope 3', selectedTask.normalized_record?.scope_3_emissions],
-                ['Quality Score', `${selectedTask.normalized_record?.data_quality_score ?? '—'} / 100`],
-                ['Status', selectedTask.status],
-                ['Priority', selectedTask.priority],
+                ['Facility',       selectedTask.facility_name],
+                ['Year',           selectedTask.reporting_year],
+                ['Scope 1 (MT)',   selectedTask.scope_1_emissions],
+                ['Scope 2 (MT)',   selectedTask.scope_2_emissions],
+                ['Scope 3 (MT)',   selectedTask.scope_3_emissions],
+                ['Quality Score',  `${selectedTask.data_quality_score ?? '—'} / 100`],
+                ['Status',         selectedTask.status],
+                ['Priority',       selectedTask.priority],
               ].map(([label, value]) => (
                 <div key={label} style={styles.detailRow}>
                   <span style={styles.detailLabel}>{label}</span>
@@ -187,11 +187,11 @@ function ReviewPage() {
                 </div>
               ))}
 
-              {selectedTask.normalized_record?.validation_errors?.length > 0 && (
+              {selectedTask.validation_errors?.length > 0 && (
                 <div style={{ gridColumn: '1 / -1', ...styles.errorsBox }}>
                   <strong>Validation Issues:</strong>
                   <ul style={{ margin: '6px 0 0 16px', fontSize: 13 }}>
-                    {selectedTask.normalized_record.validation_errors.map((e, i) => (
+                    {selectedTask.validation_errors.map((e, i) => (
                       <li key={i}>{e.field}: {e.error}</li>
                     ))}
                   </ul>
