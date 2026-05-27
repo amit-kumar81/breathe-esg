@@ -14,6 +14,12 @@ SECRET_KEY = config('SECRET_KEY', default='local-dev-key-change-in-production')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+# Render injects RENDER_EXTERNAL_HOSTNAME automatically — add it so the
+# health check passes regardless of the random suffix Render assigns.
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.contenttypes',
