@@ -6,22 +6,13 @@
  */
 
 import { useParams } from 'react-router-dom'
-import { useEffect } from 'react'
 import { useIngestionDetail, useParse, useNormalize } from '../hooks/useIngestions'
 
 function IngestionReviewPage() {
   const { id: ingestionId } = useParams()
   const { data: ingestion, isLoading } = useIngestionDetail(ingestionId)
-  const { mutate: parse, isPending: isParsing, isSuccess: parseSuccess } = useParse(ingestionId)
-  const { mutate: normalize, isPending: isNormalizing, isError: normalizeError, error: normalizeErrorDetail, isSuccess: normalizeSuccess } = useNormalize(ingestionId)
-
-  // Reload the page after parse or normalize so the fresh status is fetched
-  // from the server without relying on React Query cache invalidation
-  useEffect(() => {
-    if (parseSuccess || normalizeSuccess) {
-      window.location.reload()
-    }
-  }, [parseSuccess, normalizeSuccess])
+  const { mutate: parse, isPending: isParsing } = useParse(ingestionId)
+  const { mutate: normalize, isPending: isNormalizing, isError: normalizeError, error: normalizeErrorDetail } = useNormalize(ingestionId)
 
   if (isLoading) {
     return <div style={styles.container}>Loading ingestion...</div>
@@ -33,9 +24,19 @@ function IngestionReviewPage() {
 
   const isParsed = ingestion.step !== 'UPLOADED'
   const isNormalized = ingestion.step === 'NORMALIZED'
+  const isWorking = isParsing || isNormalizing
+
+  const stepNumber = ingestion.step === 'UPLOADED' ? 1 : ingestion.step === 'PARSED' ? 2 : 3
+  const stepLabel = isParsing ? 'Parsing…' : isNormalizing ? 'Normalizing…' : ingestion.step
 
   return (
     <div style={styles.container}>
+      <style>{`
+        @keyframes slide {
+          from { background-position: 0 0; }
+          to { background-position: 40px 0; }
+        }
+      `}</style>
       <div style={styles.header}>
         <h1>Ingestion Review</h1>
         <p style={styles.dataSourceId}>{ingestion.data_source_id}</p>
@@ -45,19 +46,23 @@ function IngestionReviewPage() {
       <div style={styles.statusCard}>
         <div style={styles.statusRow}>
           <span>Status:</span>
-          <strong>{ingestion.step}</strong>
+          <strong style={isWorking ? { color: '#007bff' } : {}}>{stepLabel}</strong>
         </div>
         <div style={styles.statusRow}>
           <span>Progress:</span>
           <div style={styles.progressBar}>
             <div style={{
               ...styles.progressFill,
-              width: `${ingestion.completion_percentage}%`
+              width: isWorking ? '100%' : `${ingestion.completion_percentage}%`,
+              backgroundImage: isWorking
+                ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.15) 10px, rgba(255,255,255,0.15) 20px)'
+                : 'none',
+              animation: isWorking ? 'slide 1s linear infinite' : 'none',
+              transition: isWorking ? 'none' : 'width 0.6s ease'
             }}></div>
           </div>
           <span style={styles.progressLabel}>
-            Step {ingestion.step === 'UPLOADED' ? '1' : ingestion.step === 'PARSED' ? '2' : '3'} of 3
-            &nbsp;({ingestion.completion_percentage}%)
+            {isWorking ? 'Working…' : `Step ${stepNumber} of 3 (${ingestion.completion_percentage}%)`}
           </span>
         </div>
         <div style={styles.stepHint}>
