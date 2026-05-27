@@ -25,7 +25,7 @@ services:
       - key: ALLOWED_HOSTS
         value: "breathe-backend-1432.onrender.com"
       - key: CORS_ALLOWED_ORIGINS
-        value: "https://breathe-frontend-1432.onrender.com"
+        value: "https://breathe-frontend-t87v.onrender.com"
 
   # React frontend — Static site (free, no server needed)
   - type: web
