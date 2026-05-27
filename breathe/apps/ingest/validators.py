@@ -98,9 +98,8 @@ def validate_emissions_value(value, allow_zero=True, allow_negative=False):
     if not allow_zero and decimal_value == 0:
         return False, None, "Emissions value must be greater than zero"
 
-    # Limit precision: max 15 digits total, 4 decimal places
-    # (matches database DecimalField(max_digits=15, decimal_places=4))
-    if len(str(abs(decimal_value.as_tuple().digits))) > 11:  # 15 - 4 = 11 integer digits
+    # Limit precision: integer part must fit in 11 digits (DecimalField max_digits=15, decimal_places=4)
+    if abs(decimal_value) >= Decimal('100000000000'):
         return False, None, f"Emissions value exceeds maximum precision (got: {decimal_value})"
 
     return True, decimal_value, None
