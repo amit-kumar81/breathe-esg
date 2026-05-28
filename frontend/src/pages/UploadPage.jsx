@@ -14,7 +14,7 @@ function UploadPage() {
   const navigate = useNavigate()
   const { mutate: upload, isPending, error, data, reset } = useUploadCSV()
   const { data: dsData, isLoading: dsLoading } = useDataSources()
-  const { data: historyData } = useIngestions()
+  const { data: historyData, isLoading: historyLoading, isError: historyError } = useIngestions()
 
   const [file, setFile] = useState(null)
   const [dataSourceId, setDataSourceId] = useState('')
@@ -56,7 +56,6 @@ function UploadPage() {
     const justUploadedId = data.ingestion_id
     const activeId = selectedIngestionId || justUploadedId
     const allIngestions = historyData?.results || []
-    const historyLoading = !historyData
 
     return (
       <div className="page-container" style={{ maxWidth: 900 }}>
@@ -90,7 +89,7 @@ function UploadPage() {
               <tbody>
                 {historyLoading ? (
                   <tr><td colSpan={6} style={{ ...styles.historyTd, textAlign: 'center', color: '#888' }}>Loading uploads…</td></tr>
-                ) : allIngestions.length === 0 ? (
+                ) : historyError || allIngestions.length === 0 ? (
                   <tr><td colSpan={6} style={{ ...styles.historyTd, textAlign: 'center', color: '#888' }}>No uploads found</td></tr>
                 ) : allIngestions.map((ing) => {
                   const isSelected = ing.id === activeId

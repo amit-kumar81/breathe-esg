@@ -41,7 +41,8 @@ export function useIngestions(options = {}) {
       const response = await apiClient.get(`/ingest/?${params.toString()}`)
       return response.data
     },
-    staleTime: 1000 * 30 // 30 seconds
+    staleTime: 1000 * 30,
+    retry: false
   })
 }
 

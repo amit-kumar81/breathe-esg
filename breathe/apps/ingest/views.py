@@ -139,20 +139,27 @@ class IngestionViewSet(viewsets.ViewSet):
         try:
             tenant_id = request.user.profile.tenant_id
         except Exception:
-            return Response([], status=status.HTTP_200_OK)
-        ingestions = RawIngestion.objects.filter(tenant_id=tenant_id).select_related('data_source_id').order_by('-created_at')
-        data = [
-            {
-                'id': str(i.id),
-                'filename': i.filename,
-                'line_count': i.line_count,
-                'step': i.step,
-                'data_source_name': i.data_source_id.name if i.data_source_id else '—',
-                'created_at': i.created_at.isoformat(),
-            }
-            for i in ingestions
-        ]
-        return Response({'results': data, 'count': len(data)})
+            return Response({'results': [], 'count': 0}, status=status.HTTP_200_OK)
+        try:
+            ingestions = RawIngestion.objects.filter(tenant_id=tenant_id).order_by('-created_at')
+            data = []
+            for i in ingestions:
+                try:
+                    ds_name = i.data_source_id.name
+                except Exception:
+                    ds_name = '—'
+                data.append({
+                    'id': str(i.id),
+                    'filename': i.filename,
+                    'line_count': i.line_count,
+                    'step': i.step,
+                    'data_source_name': ds_name,
+                    'created_at': i.created_at.isoformat(),
+                })
+            return Response({'results': data, 'count': len(data)})
+        except Exception as e:
+            logger.error(f"Error listing ingestions: {e}", exc_info=True)
+            return Response({'results': [], 'count': 0}, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
         try:
