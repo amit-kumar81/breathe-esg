@@ -255,8 +255,7 @@ def normalize_travel_record(raw_values, field_mapping):
     airport coordinates to derive great-circle distance.
 
     All travel emissions are Scope 3 (Category 6: Business Travel).
-    facility_name is set to the employee's home city (derived from Origin_IATA)
-    so that emissions can be attributed to the correct reporting entity.
+    facility_name is always 'Business Travel' since there is no physical facility.
     """
     normalized = {}
     errors = []
@@ -285,14 +284,7 @@ def normalize_travel_record(raw_values, field_mapping):
         'hotel_nights'
     )
 
-    # facility_name: for travel, use origin city as the reporting entity
-    # (emissions are attributed to the office the employee travels from)
-    facility_name = (
-        mapped.get('facility_name')
-        or (origin and str(origin).strip())
-        or 'Business Travel'
-    )
-    normalized['facility_name'] = str(facility_name).strip()
+    normalized['facility_name'] = 'Business Travel'
 
     # reporting_year from transaction date
     date_raw = mapped.get('transaction_date') or raw_values.get('Transaction_Date')
