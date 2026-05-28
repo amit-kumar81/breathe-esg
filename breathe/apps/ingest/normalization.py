@@ -424,7 +424,6 @@ def normalize_ingestion(raw_ingestion):
     Idempotent: re-running deletes previous results first.
     """
     from .models import ParsedRecord, NormalizedRecord
-    from breathe.apps.emissions.models import EmissionsDataPoint
     from breathe.apps.review.models import ReviewTask
 
     data_source = raw_ingestion.data_source_id
@@ -489,15 +488,8 @@ def normalize_ingestion(raw_ingestion):
     total_parsed = parsed_records.count()
     logger.info(f"Starting normalization: ingestion={raw_ingestion.id}, source_type={source_type}, rows={total_parsed}")
 
-    # Idempotent: clear previous results
+    # Idempotent: clear previous results for this ingestion
     NormalizedRecord.objects.filter(ingestion_id=raw_ingestion).delete()
-    EmissionsDataPoint.objects.filter(parsed_record_id__ingestion_id=raw_ingestion).delete()
-    # Also remove orphaned EDPs whose parsed_record_id was set to NULL by a prior re-parse
-    EmissionsDataPoint.objects.filter(
-        parsed_record_id__isnull=True,
-        data_source_id=raw_ingestion.data_source_id,
-        tenant_id=raw_ingestion.tenant_id,
-    ).delete()
     ReviewTask.objects.filter(ingestion_id=raw_ingestion).delete()
 
     nr_to_create = []
@@ -536,61 +528,9 @@ def normalize_ingestion(raw_ingestion):
 
     NormalizedRecord.objects.bulk_create(nr_to_create, batch_size=500)
 
-    # Create EmissionsDataPoints (one per scope per NormalizedRecord where value is present)
-    scope_fields = [
-        ('scope_1_emissions', 'SCOPE_1'),
-        ('scope_2_emissions', 'SCOPE_2'),
-        ('scope_3_emissions', 'SCOPE_3'),
-    ]
-    emission_points = []
-    for nr in NormalizedRecord.objects.filter(ingestion_id=raw_ingestion):
-        for field_name, scope_code in scope_fields:
-            value = getattr(nr, field_name)
-            if value is not None:
-                emission_points.append(EmissionsDataPoint(
-                    tenant_id=raw_ingestion.tenant_id,
-                    parsed_record_id=nr.parsed_record_id,
-                    data_source_id=raw_ingestion.data_source_id,
-                    facility_name=nr.facility_name or '',
-                    scope=scope_code,
-                    emissions_value=value,
-                    emissions_unit='mtCO2e',
-                    year=nr.reporting_year or 0,
-                    methodology=nr.normalized_values.get('emission_factor_source', ''),
-                    is_valid=nr.is_valid,
-                    normalized_values=nr.normalized_values,
-                    validation_errors=nr.validation_errors,
-                    data_quality_flags=nr.data_quality_flags,
-                ))
-    EmissionsDataPoint.objects.bulk_create(emission_points, batch_size=500)
-
-    # Create ReviewTasks for analyst sign-off
-    review_tasks = []
-    for nr in NormalizedRecord.objects.filter(ingestion_id=raw_ingestion):
-        if not nr.is_valid:
-            priority = 'HIGH'
-            reason_codes = ['validation_error']
-        elif nr.data_quality_score < 70:
-            priority = 'MEDIUM'
-            reason_codes = ['low_quality']
-        else:
-            priority = 'LOW'
-            reason_codes = ['routine_review']
-
-        review_tasks.append(ReviewTask(
-            ingestion_id=raw_ingestion,
-            normalized_record_id=nr,
-            tenant_id=raw_ingestion.tenant_id,
-            status='PENDING',
-            priority=priority,
-            reason_codes=reason_codes,
-        ))
-    ReviewTask.objects.bulk_create(review_tasks, batch_size=500)
-
     logger.info(
         f"Normalization complete [{source_type}]: total={len(nr_to_create)}, "
-        f"valid={valid_count}, invalid={invalid_count}, "
-        f"emissions_points={len(emission_points)}, review_tasks={len(review_tasks)}"
+        f"valid={valid_count}, invalid={invalid_count}"
     )
 
     return {

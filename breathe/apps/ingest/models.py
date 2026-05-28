@@ -11,6 +11,7 @@ Design Philosophy:
 import uuid
 import hashlib
 from django.db import models
+from django.contrib.auth import get_user_model
 from breathe.apps.tenants.models import Tenant
 
 
@@ -140,21 +141,22 @@ class ParsedRecord(models.Model):
 
 class NormalizedRecord(models.Model):
     """
-    A ParsedRecord that has been normalized to standard schema.
+    A ParsedRecord normalized to a standard schema, with its own review lifecycle.
 
-    Design: Links raw CSV data → parsed structured dict → normalized standard fields.
+    This is the single source of truth for emissions data. The pipeline is:
+        RawIngestion → ParsedRecord → NormalizedRecord → (analyst review) → Analytics
 
-    Stores:
-    - Standard fields (facility_name, scope_1_emissions, year, etc.) as relational columns
-    - Normalized values (complete mapping) as JSONB
-    - Validation errors (per-field)
-    - Data quality flags (warnings)
-
-    Purpose:
-    - Tracks which ParsedRecords have been normalized
-    - Stores validation errors at normalization time (before EmissionsDataPoint creation)
-    - Enables idempotent re-normalization (delete old, create new with updated logic)
+    review_status drives the entire approval workflow:
+    - PENDING_REVIEW: freshly normalized, waiting for analyst
+    - APPROVED: analyst approved → included in dashboard analytics
+    - REJECTED: analyst rejected → excluded from analytics
     """
+    REVIEW_STATUS_CHOICES = (
+        ('PENDING_REVIEW', 'Awaiting analyst review'),
+        ('APPROVED', 'Approved for analytics'),
+        ('REJECTED', 'Rejected by analyst'),
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     ingestion_id = models.ForeignKey(RawIngestion, on_delete=models.CASCADE, related_name='normalized_records')
     parsed_record_id = models.ForeignKey(ParsedRecord, on_delete=models.CASCADE, related_name='normalized_record')
@@ -169,17 +171,22 @@ class NormalizedRecord(models.Model):
     data_quality_score = models.IntegerField(default=0, help_text="0-100 quality score")
 
     # --- JSONB fields (flexible) ---
-    # Complete normalized values dict: {"facility_name": "...", "scope_1_emissions": 1234.56, ...}
     normalized_values = models.JSONField(default=dict)
-
-    # Validation errors: [{"field": "facility_name", "error": "required field missing"}]
     validation_errors = models.JSONField(default=list)
-
-    # Data quality warnings: [{"field": "methodology", "severity": "warning", "message": "Not provided"}]
     data_quality_flags = models.JSONField(default=list)
-
-    # Is this record valid for downstream processing?
     is_valid = models.BooleanField(default=False, db_index=True)
+
+    # --- Review lifecycle ---
+    review_status = models.CharField(
+        max_length=20, choices=REVIEW_STATUS_CHOICES,
+        default='PENDING_REVIEW', db_index=True,
+    )
+    reviewed_by = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='reviewed_records',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewer_notes = models.TextField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -189,10 +196,19 @@ class NormalizedRecord(models.Model):
         indexes = [
             models.Index(fields=['ingestion_id']),
             models.Index(fields=['tenant_id']),
+            models.Index(fields=['review_status']),
             models.Index(fields=['is_valid']),
             models.Index(fields=['facility_name', 'reporting_year']),
         ]
         unique_together = [['ingestion_id', 'parsed_record_id']]
 
+    @property
+    def priority(self):
+        if self.validation_errors or (self.data_quality_score is not None and self.data_quality_score < 60):
+            return 'HIGH'
+        if self.data_quality_score is not None and self.data_quality_score < 80:
+            return 'MEDIUM'
+        return 'LOW'
+
     def __str__(self):
-        return f"Normalized: {self.facility_name} ({self.reporting_year}) - Valid: {self.is_valid}"
+        return f"Normalized: {self.facility_name} ({self.reporting_year}) [{self.review_status}]"
