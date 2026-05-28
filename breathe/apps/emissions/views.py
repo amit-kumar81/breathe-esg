@@ -13,7 +13,8 @@ from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum, Avg, Count, Q, Coalesce, Value
+from django.db.models import Sum, Avg, Count, Q, Value
+from django.db.models.functions import Coalesce
 
 from breathe.apps.ingest.models import NormalizedRecord
 
