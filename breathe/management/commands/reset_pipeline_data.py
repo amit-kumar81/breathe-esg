@@ -36,37 +36,27 @@ class Command(BaseCommand):
                 self.stdout.write('Aborted.')
                 return
 
-        from breathe.apps.audit.models import AuditLog
-        from breathe.apps.review.models import ReviewTask, ReviewApproval
-        from breathe.apps.emissions.models import EmissionsDataPoint
-        from breathe.apps.ingest.models import NormalizedRecord, ParsedRecord, RawIngestion
+        from django.db import connection
 
-        counts = {}
+        # Raw SQL bypasses all Django signals and model delete() overrides.
+        # Signals fire on ORM deletes and try to write AuditLog rows with
+        # tenant_id=None, which violates the NOT NULL constraint outside a
+        # request context. Table order respects FK constraints.
+        tables = [
+            ('audit_audit_log',                  'AuditLog'),
+            ('review_review_approval',           'ReviewApproval'),
+            ('review_review_task',               'ReviewTask'),
+            ('emissions_emissions_data_point',   'EmissionsDataPoint'),
+            ('ingest_normalized_record',         'NormalizedRecord'),
+            ('ingest_parsed_record',             'ParsedRecord'),
+            ('ingest_raw_ingestion',             'RawIngestion'),
+        ]
 
-        counts['AuditLog'] = AuditLog.objects.count()
-        # QuerySet.delete() goes direct to SQL and does NOT call the model's
-        # instance delete() method, so the immutability guard is bypassed safely.
-        AuditLog.objects.all().delete()
+        with connection.cursor() as cursor:
+            for table, label in tables:
+                cursor.execute(f'SELECT COUNT(*) FROM "{table}"')
+                count = cursor.fetchone()[0]
+                cursor.execute(f'DELETE FROM "{table}"')
+                self.stdout.write(f'  {label}: {count} rows deleted')
 
-        counts['ReviewApproval'] = ReviewApproval.objects.count()
-        ReviewApproval.objects.all().delete()
-
-        counts['ReviewTask'] = ReviewTask.objects.count()
-        ReviewTask.objects.all().delete()
-
-        counts['EmissionsDataPoint'] = EmissionsDataPoint.objects.count()
-        EmissionsDataPoint.objects.all().delete()
-
-        counts['NormalizedRecord'] = NormalizedRecord.objects.count()
-        NormalizedRecord.objects.all().delete()
-
-        counts['ParsedRecord'] = ParsedRecord.objects.count()
-        ParsedRecord.objects.all().delete()
-
-        counts['RawIngestion'] = RawIngestion.objects.count()
-        RawIngestion.objects.all().delete()
-
-        self.stdout.write(self.style.SUCCESS('Pipeline data cleared:'))
-        for model, count in counts.items():
-            self.stdout.write(f'  {model}: {count} rows deleted')
         self.stdout.write(self.style.SUCCESS('Done. Users and DataSources untouched.'))
