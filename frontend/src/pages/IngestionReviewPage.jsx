@@ -260,6 +260,7 @@ const styles = {
   },
   actions: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: '12px',
     marginBottom: '30px'
   },

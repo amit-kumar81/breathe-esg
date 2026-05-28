@@ -282,6 +282,34 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* =====================================================================
+   Review modal detail grid — 2 col desktop, 1 col on small phone
+   ===================================================================== */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+/* =====================================================================
+   Breakpoint: tablet-nav  (≤ 768px) — hamburger replaces desktop nav
+   ===================================================================== */
+@media (max-width: 768px) {
+  .navbar-links,
+  .navbar-right {
+    display: none;
+  }
+
+  .navbar-hamburger {
+    display: block;
+  }
+
+  .navbar-inner {
+    padding: 0 16px;
+  }
+}
+
+/* =====================================================================
    Breakpoint: tablet  (≤ 900px)
    ===================================================================== */
 @media (max-width: 900px) {
@@ -298,20 +326,6 @@ input:focus, select:focus, textarea:focus {
    Breakpoint: mobile  (≤ 640px)
    ===================================================================== */
 @media (max-width: 640px) {
-  /* NavBar: hide desktop links & user, show hamburger */
-  .navbar-links,
-  .navbar-right {
-    display: none;
-  }
-
-  .navbar-hamburger {
-    display: block;
-  }
-
-  .navbar-inner {
-    padding: 0 16px;
-  }
-
   /* Page containers */
   .page-container {
     padding: 16px 12px;
@@ -350,6 +364,11 @@ input:focus, select:focus, textarea:focus {
   /* Upload actions stack vertically */
   .upload-actions {
     flex-direction: column;
+  }
+
+  /* Review modal detail grid goes single column */
+  .detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 

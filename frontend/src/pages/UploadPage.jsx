@@ -323,7 +323,7 @@ const styles = {
   },
   fileInput: {
     position: 'relative',
-    display: 'inline-block'
+    display: 'block'
   },
   hiddenInput: {
     display: 'none'
@@ -531,6 +531,7 @@ const styles = {
   },
   historyActions: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: 12,
     padding: '16px 24px',
     borderTop: '1px solid #eee',

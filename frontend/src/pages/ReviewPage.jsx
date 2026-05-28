@@ -195,7 +195,7 @@ function ReviewPage() {
               <button style={styles.closeBtn} onClick={() => setSelectedTaskId(null)}>✕</button>
             </div>
 
-            <div style={styles.detailGrid}>
+            <div className="detail-grid">
               {[
                 ['Facility',       selectedTask.facility_name],
                 ['Year',           selectedTask.reporting_year],
@@ -293,9 +293,9 @@ const priorityBadge = (p) => ({
 })
 
 const styles = {
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, borderBottom: '1px solid #ddd', paddingBottom: 20 },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: 24, borderBottom: '1px solid #ddd', paddingBottom: 20 },
   subtitle: { margin: '6px 0 0', color: '#666', fontSize: 14 },
-  tabs: { display: 'flex', gap: 4, marginBottom: 20 },
+  tabs: { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 20 },
   tab: { padding: '8px 20px', border: '1px solid #ddd', borderRadius: 4, background: '#f8f9fa', color: '#555', cursor: 'pointer', fontSize: 14 },
   tabActive: { background: '#007bff', color: '#fff', borderColor: '#007bff' },
   loading: { padding: 40, textAlign: 'center', color: '#666' },
@@ -316,7 +316,7 @@ const styles = {
   modal: { background: '#fff', borderRadius: 8, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #eee' },
   closeBtn: { background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#888', padding: 0 },
-  detailGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', marginBottom: 20 },
+  detailGrid: {},
   detailRow: { display: 'flex', flexDirection: 'column', padding: '10px 0', borderBottom: '1px solid #f0f0f0' },
   detailLabel: { fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 },
   detailValue: { fontSize: 14, color: '#333' },
