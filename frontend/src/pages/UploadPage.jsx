@@ -175,20 +175,24 @@ function UploadPage() {
 
         {/* CSV Format Help */}
         <div style={styles.helpBox}>
-          <h3 style={styles.helpTitle}>CSV Format Requirements</h3>
-          <p style={styles.helpText}>
-            Your CSV should include these columns (exact names):
-          </p>
+          <h3 style={styles.helpTitle}>CSV Format by Data Source</h3>
+          <p style={styles.helpText}><strong>SAP GHG Export</strong> — semicolon-delimited:</p>
           <ul style={styles.helpList}>
-            <li><code>Facility</code> - Facility/plant name</li>
-            <li><code>Scope 1 Emissions</code> - Scope 1 emissions (tCO2e)</li>
-            <li><code>Scope 2 Emissions</code> - Scope 2 emissions (tCO2e)</li>
-            <li><code>Scope 3 Emissions</code> - Scope 3 emissions (tCO2e)</li>
-            <li><code>Year</code> - Reporting year (YYYY)</li>
+            <li><code>Werksname</code> — facility/plant name</li>
+            <li><code>Buchungsjahr</code> — reporting year (YYYY)</li>
+            <li><code>Scope1_tCO2e</code>, <code>Scope2_tCO2e</code>, <code>Scope3_tCO2e</code> — emissions</li>
           </ul>
-          <p style={styles.helpText}>
-            Missing or invalid values will be flagged during parsing.
-          </p>
+          <p style={styles.helpText}><strong>Utility Portal CSV</strong> — comma-delimited:</p>
+          <ul style={styles.helpList}>
+            <li><code>Site_Name</code> — facility name</li>
+            <li><code>Billing_Start</code> — billing period start date</li>
+            <li><code>Usage_kWh</code> — electricity consumed (kWh)</li>
+          </ul>
+          <p style={styles.helpText}><strong>Concur Travel Export</strong> — comma-delimited:</p>
+          <ul style={styles.helpList}>
+            <li><code>Employee_ID</code>, <code>Transaction_Date</code>, <code>Expense_Type</code></li>
+            <li><code>Distance_km</code> (flights/ground) or <code>Hotel_Nights</code></li>
+          </ul>
         </div>
       </div>
     </div>

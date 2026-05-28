@@ -84,7 +84,7 @@ export function useRejectTask(taskId) {
   return useMutation({
     mutationFn: async (rejectionReason) => {
       const response = await apiClient.post(`/review/${taskId}/reject/`, {
-        rejection_reason: rejectionReason
+        notes: rejectionReason || ''
       })
       return response.data
     },

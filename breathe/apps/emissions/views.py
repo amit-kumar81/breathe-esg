@@ -134,7 +134,7 @@ class EmissionsDataPointViewSet(viewsets.ReadOnlyModelViewSet):
         if facility_name:
             queryset = queryset.filter(facility_name=facility_name)
         if scope:
-            queryset = queryset.filter(scope=scope)
+            queryset = queryset.filter(scope=scope.upper())
 
         total_emissions = queryset.aggregate(t=Sum('emissions_value'))['t'] or 0
         record_count = queryset.count()
