@@ -71,7 +71,4 @@ export function formatError(error) {
  * @param {string} context - Where error occurred
  */
 export function logError(error, context) {
-  console.error(`[${context}]`, error)
-
-  // TODO: Send to error tracking service (Sentry, etc.)
 }

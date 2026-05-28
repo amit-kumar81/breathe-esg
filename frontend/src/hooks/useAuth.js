@@ -58,9 +58,8 @@ export function useLogout() {
       // Call logout endpoint (optional in JWT, but good for audit trail)
       try {
         await apiClient.post('/auth/logout/')
-      } catch (error) {
-        // Ignore logout errors, still clear local storage
-        console.warn('Logout API call failed:', error)
+      } catch {
+        // ignore — tokens are cleared regardless
       }
     },
     onSuccess: () => {
