@@ -44,8 +44,9 @@ class Command(BaseCommand):
         counts = {}
 
         counts['AuditLog'] = AuditLog.objects.count()
-        # AuditLog.delete() is blocked by the model — bypass via queryset update
-        AuditLog.objects.all()._raw_delete(AuditLog.objects.db)
+        # QuerySet.delete() goes direct to SQL and does NOT call the model's
+        # instance delete() method, so the immutability guard is bypassed safely.
+        AuditLog.objects.all().delete()
 
         counts['ReviewApproval'] = ReviewApproval.objects.count()
         ReviewApproval.objects.all().delete()
