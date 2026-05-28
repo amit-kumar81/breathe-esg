@@ -39,7 +39,7 @@ function IngestionReviewPage() {
       `}</style>
       <div style={styles.header}>
         <h1>Ingestion Review</h1>
-        <p style={styles.dataSourceId}>{ingestion.data_source_id}</p>
+        <p style={styles.dataSourceId}>{ingestion.data_source_name || ingestion.data_source_id}</p>
       </div>
 
       {/* Status Card */}

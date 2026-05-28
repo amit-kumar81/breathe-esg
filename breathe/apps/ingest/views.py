@@ -179,18 +179,36 @@ class IngestionViewSet(viewsets.ViewSet):
         )
         sample_normalized = list(
             IngestNormalized.objects.filter(ingestion_id=ingestion)
-            .values('facility_name', 'scope_1_emissions', 'reporting_year',
-                    'data_quality_score', 'is_valid')[:5]
+            .values('facility_name', 'scope_1_emissions', 'scope_2_emissions',
+                    'scope_3_emissions', 'reporting_year',
+                    'data_quality_score', 'is_valid', 'validation_errors')[:5]
         )
+        # Decimal fields come back as Decimal objects — convert to float for JSON
+        for rec in sample_normalized:
+            for field in ('scope_1_emissions', 'scope_2_emissions', 'scope_3_emissions'):
+                if rec[field] is not None:
+                    rec[field] = float(rec[field])
         valid_count = IngestNormalized.objects.filter(ingestion_id=ingestion, is_valid=True).count()
 
-        # Read CSV column order from source of truth (JSONB doesn't preserve key order)
+        # Read CSV column order from source of truth.
+        # SAP files are semicolon-delimited; all others use sniffer.
         import csv as csv_module, io as io_module
         csv_columns = []
         if ingestion.raw_csv_content:
-            reader = csv_module.reader(io_module.StringIO(ingestion.raw_csv_content))
+            source_type = ingestion.data_source_id.source_type
+            if source_type == 'SAP':
+                delimiter = ';'
+            else:
+                try:
+                    sniffer = csv_module.Sniffer()
+                    dialect = sniffer.sniff(ingestion.raw_csv_content[:2048], delimiters=',;\t|')
+                    delimiter = dialect.delimiter
+                except Exception:
+                    delimiter = ','
+            reader = csv_module.reader(io_module.StringIO(ingestion.raw_csv_content), delimiter=delimiter)
             csv_columns = next(reader, [])
 
+        data_source = ingestion.data_source_id
         return Response({
             'id': str(ingestion.id),
             'filename': ingestion.filename,
@@ -198,6 +216,9 @@ class IngestionViewSet(viewsets.ViewSet):
             'step': step,
             'completion_percentage': completion_percentage,
             'csv_columns': csv_columns,
+            'data_source_id': str(data_source.id),
+            'data_source_name': data_source.name,
+            'data_source_type': data_source.source_type,
             'sample_parsed_records': sample_parsed,
             'sample_normalized_records': sample_normalized,
             'summary': {
@@ -256,10 +277,10 @@ class IngestionViewSet(viewsets.ViewSet):
         if not hasattr(request, 'tenant_id'):
             pass  # Allow for now
 
-        # Parse the ingestion
+        # Parse the ingestion (source-type aware: SAP always uses semicolon)
         logger.info(f"Starting parse for ingestion {raw_ingestion.id}")
         try:
-            result = parse_raw_ingestion(raw_ingestion)
+            result = parse_raw_ingestion(raw_ingestion, source_type=raw_ingestion.data_source_id.source_type)
 
             total_rows = raw_ingestion.line_count
             parsed_count = result['parsed_count']

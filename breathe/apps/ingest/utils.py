@@ -158,7 +158,7 @@ def detect_csv_dialect(csv_text):
         return csv.excel, ','
 
 
-def parse_raw_csv_content(raw_csv_text, ingestion_id=None):
+def parse_raw_csv_content(raw_csv_text, ingestion_id=None, forced_delimiter=None):
     """
     Parse raw CSV text into list of dictionaries.
 
@@ -168,6 +168,7 @@ def parse_raw_csv_content(raw_csv_text, ingestion_id=None):
     Args:
         raw_csv_text: Original CSV content as string
         ingestion_id: For logging purposes (optional)
+        forced_delimiter: If set, skip dialect sniffing and use this delimiter (e.g. ';' for SAP)
 
     Returns:
         dict: {
@@ -182,13 +183,20 @@ def parse_raw_csv_content(raw_csv_text, ingestion_id=None):
     delimiter_used = ','
 
     try:
-        # Detect dialect
-        dialect, delimiter_used = detect_csv_dialect(raw_csv_text)
-        logger.info(f"Using delimiter: '{delimiter_used}'")
+        # Use forced delimiter (SAP always semicolon) or sniff from content
+        if forced_delimiter:
+            import csv as _csv
+            dialect = _csv.excel
+            delimiter_used = forced_delimiter
+            logger.info(f"Using forced delimiter: '{delimiter_used}'")
+        else:
+            # Detect dialect
+            dialect, delimiter_used = detect_csv_dialect(raw_csv_text)
+            logger.info(f"Using delimiter: '{delimiter_used}'")
 
-        # Parse CSV
+        # Parse CSV — always pass delimiter explicitly so forced_delimiter takes effect
         text_stream = io.StringIO(raw_csv_text)
-        reader = csv.DictReader(text_stream, dialect=dialect)
+        reader = csv.DictReader(text_stream, dialect=dialect, delimiter=delimiter_used)
 
         if reader.fieldnames is None:
             raise ValueError("CSV has no header row")
@@ -225,19 +233,20 @@ def parse_raw_csv_content(raw_csv_text, ingestion_id=None):
         raise ValueError(f"Failed to parse CSV: {str(e)}")
 
 
-def parse_raw_ingestion(raw_ingestion):
+def parse_raw_ingestion(raw_ingestion, source_type=None):
     """
     Parse a RawIngestion into ParsedRecords.
 
     Process (Chunk 1.3):
     1. Read raw_csv_content (source of truth)
-    2. Parse with dialect detection
+    2. Parse with dialect detection (SAP always uses ';')
     3. Clear existing ParsedRecords (idempotent re-parsing)
     4. Create new ParsedRecords for each row
     5. Return summary
 
     Args:
         raw_ingestion: RawIngestion object (contains raw_csv_content)
+        source_type: Optional source type string ('SAP', 'UTILITY', 'TRAVEL')
 
     Returns:
         dict: {
@@ -253,7 +262,9 @@ def parse_raw_ingestion(raw_ingestion):
     csv_text = raw_ingestion.raw_csv_content
     logger.info(f"Parsing RawIngestion {raw_ingestion.id}: {raw_ingestion.filename}")
 
-    parse_result = parse_raw_csv_content(csv_text, raw_ingestion.id)
+    # SAP exports are always semicolon-delimited (European locale).
+    forced_delimiter = ';' if source_type == 'SAP' else None
+    parse_result = parse_raw_csv_content(csv_text, raw_ingestion.id, forced_delimiter=forced_delimiter)
     rows = parse_result["rows"]
     parsing_errors = parse_result["errors"]
     delimiter = parse_result["delimiter"]
