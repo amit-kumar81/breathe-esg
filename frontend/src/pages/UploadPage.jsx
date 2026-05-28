@@ -7,13 +7,14 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useUploadCSV, useDataSources } from '../hooks/useIngestions'
+import { useUploadCSV, useDataSources, useIngestions } from '../hooks/useIngestions'
 import { getErrorMessage } from '../utils/errorHandler'
 
 function UploadPage() {
   const navigate = useNavigate()
   const { mutate: upload, isPending, error, data, reset } = useUploadCSV()
   const { data: dsData, isLoading: dsLoading } = useDataSources()
+  const { data: historyData } = useIngestions()
 
   const [file, setFile] = useState(null)
   const [dataSourceId, setDataSourceId] = useState('')
@@ -196,8 +197,65 @@ function UploadPage() {
           </ul>
         </div>
       </div>
+
+      {/* Ingestion History */}
+      {historyData?.results?.length > 0 && (
+        <div style={styles.historySection}>
+          <h2 style={styles.historyTitle}>Previous Uploads</h2>
+          <div className="table-scroll">
+            <table style={styles.historyTable}>
+              <thead>
+                <tr style={styles.historyThead}>
+                  <th style={styles.historyTh}>File</th>
+                  <th style={styles.historyTh}>Data Source</th>
+                  <th style={styles.historyTh}>Rows</th>
+                  <th style={styles.historyTh}>Step</th>
+                  <th style={styles.historyTh}>Uploaded</th>
+                  <th style={styles.historyTh}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historyData.results.map((ing) => (
+                  <tr key={ing.id} style={styles.historyTr}>
+                    <td style={styles.historyTd}>{ing.filename}</td>
+                    <td style={styles.historyTd}>{ing.data_source_name}</td>
+                    <td style={styles.historyTd}>{ing.line_count}</td>
+                    <td style={styles.historyTd}>
+                      <span style={stepBadge(ing.step)}>{ing.step}</span>
+                    </td>
+                    <td style={styles.historyTd}>
+                      {new Date(ing.created_at).toLocaleString()}
+                    </td>
+                    <td style={styles.historyTd}>
+                      <button
+                        style={styles.historyBtn}
+                        onClick={() => navigate(`/ingest/${ing.id}`)}
+                      >
+                        Review &amp; Parse
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+const stepBadge = (step) => {
+  const colors = {
+    UPLOADED:   { bg: '#fff3cd', color: '#856404' },
+    PARSED:     { bg: '#cff4fc', color: '#055160' },
+    NORMALIZED: { bg: '#d1e7dd', color: '#0a3622' },
+  }
+  const c = colors[step] || { bg: '#e2e3e5', color: '#383d41' }
+  return {
+    padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+    backgroundColor: c.bg, color: c.color
+  }
 }
 
 const styles = {
@@ -374,6 +432,53 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500'
+  },
+  historySection: {
+    marginTop: 32
+  },
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#333',
+    marginBottom: 12
+  },
+  historyTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    backgroundColor: 'white',
+    fontSize: 13,
+    borderRadius: 6,
+    overflow: 'hidden',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+  },
+  historyThead: {
+    backgroundColor: '#f1f3f5'
+  },
+  historyTh: {
+    padding: '10px 14px',
+    textAlign: 'left',
+    fontWeight: 600,
+    color: '#495057',
+    borderBottom: '2px solid #dee2e6',
+    whiteSpace: 'nowrap'
+  },
+  historyTr: {
+    borderBottom: '1px solid #eee'
+  },
+  historyTd: {
+    padding: '10px 14px',
+    color: '#333',
+    whiteSpace: 'nowrap'
+  },
+  historyBtn: {
+    padding: '5px 12px',
+    backgroundColor: '#007bff',
+    color: 'white',
+    border: 'none',
+    borderRadius: 4,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 500
   }
 }
 

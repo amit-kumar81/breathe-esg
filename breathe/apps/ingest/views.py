@@ -140,12 +140,14 @@ class IngestionViewSet(viewsets.ViewSet):
             tenant_id = request.user.profile.tenant_id
         except Exception:
             return Response([], status=status.HTTP_200_OK)
-        ingestions = RawIngestion.objects.filter(tenant_id=tenant_id).order_by('-created_at')
+        ingestions = RawIngestion.objects.filter(tenant_id=tenant_id).select_related('data_source_id').order_by('-created_at')
         data = [
             {
                 'id': str(i.id),
                 'filename': i.filename,
                 'line_count': i.line_count,
+                'step': i.step,
+                'data_source_name': i.data_source_id.name if i.data_source_id else '—',
                 'created_at': i.created_at.isoformat(),
             }
             for i in ingestions
