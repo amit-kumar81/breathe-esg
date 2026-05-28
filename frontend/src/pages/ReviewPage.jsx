@@ -42,6 +42,12 @@ function ReviewPage() {
 
   return (
     <div className="page-container">
+      <style>{`
+        .pager-btn { transition: background 0.15s, transform 0.1s; }
+        .pager-btn:not(:disabled):hover { background: #e2e6ea !important; border-color: #adb5bd !important; }
+        .pager-btn:not(:disabled):active { background: #ced4da !important; transform: translateY(1px); }
+        .pager-btn:disabled { cursor: not-allowed; }
+      `}</style>
       {/* Header */}
       <div style={styles.header}>
         <div>
@@ -145,17 +151,19 @@ function ReviewPage() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={!taskList?.previous}
+              className="pager-btn"
               style={{ ...styles.pageBtn, opacity: taskList?.previous ? 1 : 0.4 }}
             >
-              Previous
+              ← Previous
             </button>
             <span style={styles.pageLabel}>Page {page}</span>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={!taskList?.next}
+              className="pager-btn"
               style={{ ...styles.pageBtn, opacity: taskList?.next ? 1 : 0.4 }}
             >
-              Next
+              Next →
             </button>
           </div>
         </>

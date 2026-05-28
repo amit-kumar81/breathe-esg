@@ -70,34 +70,32 @@ function IngestionReviewPage() {
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons — always visible so any step can be re-run */}
       <div style={styles.actions}>
-        {!isParsed && (
-          <button
-            onClick={() => parse()}
-            disabled={isParsing}
-            style={{
-              ...styles.button,
-              ...styles.primaryButton,
-              opacity: isParsing ? 0.6 : 1
-            }}
-          >
-            {isParsing ? 'Parsing...' : 'Parse CSV'}
-          </button>
-        )}
+        <button
+          onClick={() => parse()}
+          disabled={isWorking}
+          style={{
+            ...styles.button,
+            ...(isParsed ? styles.secondaryButton : styles.primaryButton),
+            opacity: isWorking ? 0.6 : 1
+          }}
+        >
+          {isParsing ? 'Parsing...' : isParsed ? 'Re-parse CSV' : 'Parse CSV'}
+        </button>
 
-        {isParsed && !isNormalized && (
+        {isParsed && (
           <div>
             <button
               onClick={() => normalize()}
-              disabled={isNormalizing}
+              disabled={isWorking}
               style={{
                 ...styles.button,
-                ...styles.primaryButton,
-                opacity: isNormalizing ? 0.6 : 1
+                ...(isNormalized ? styles.secondaryButton : styles.primaryButton),
+                opacity: isWorking ? 0.6 : 1
               }}
             >
-              {isNormalizing ? 'Normalizing...' : 'Normalize & Validate'}
+              {isNormalizing ? 'Normalizing...' : isNormalized ? 'Re-normalize' : 'Normalize & Validate'}
             </button>
             {normalizeError && (
               <div style={styles.errorBox}>
@@ -106,13 +104,13 @@ function IngestionReviewPage() {
             )}
           </div>
         )}
-
-        {isNormalized && (
-          <div style={styles.successBox}>
-            ✓ Normalization complete. Records are ready for review.
-          </div>
-        )}
       </div>
+
+      {isNormalized && !isNormalizing && (
+        <div style={{ ...styles.successBox, marginBottom: 20 }}>
+          ✓ Normalization complete. Records are ready for review.
+        </div>
+      )}
 
       {/* Sample Parsed Records */}
       {ingestion.sample_parsed_records && ingestion.sample_parsed_records.length > 0 && (
@@ -275,6 +273,10 @@ const styles = {
   },
   primaryButton: {
     backgroundColor: '#007bff',
+    color: 'white'
+  },
+  secondaryButton: {
+    backgroundColor: '#6c757d',
     color: 'white'
   },
   successBox: {

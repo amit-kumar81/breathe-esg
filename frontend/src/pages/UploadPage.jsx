@@ -12,7 +12,7 @@ import { getErrorMessage } from '../utils/errorHandler'
 
 function UploadPage() {
   const navigate = useNavigate()
-  const { mutate: upload, isPending, error, data } = useUploadCSV()
+  const { mutate: upload, isPending, error, data, reset } = useUploadCSV()
   const { data: dsData, isLoading: dsLoading } = useDataSources()
 
   const [file, setFile] = useState(null)
@@ -74,6 +74,7 @@ function UploadPage() {
             <button
               style={styles.secondaryButton}
               onClick={() => {
+                reset()
                 setFile(null)
                 setDataSourceId('')
                 setTouched({})
