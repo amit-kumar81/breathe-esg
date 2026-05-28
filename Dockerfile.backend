@@ -12,4 +12,4 @@ EXPOSE 8000
 # PORT is injected by Render/Railway at runtime; falls back to 8000 for other environments.
 # collectstatic must run before gunicorn so whitenoise can serve compressed static files.
 # Migrations are also run here as a safety net; Render runs them earlier via preDeployCommand.
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py seed && gunicorn breathe.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py seed && python manage.py reset_pipeline_data --confirm && gunicorn breathe.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
