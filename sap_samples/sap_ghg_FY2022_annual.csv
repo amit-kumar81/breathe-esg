@@ -1,0 +1,17 @@
+Werks;Werksname;Buchungsjahr;Bericht_Datum;Scope1_tCO2e;Scope2_tCO2e;Scope3_tCO2e
+1001;Mumbai Raffinerie - Einheit 1;2022;31.12.2022;4480.20;2280.10;178.40
+1002;Mumbai Petrochemiewerk;2022;31.12.2022;5990.00;3390.50;0.00
+1003;Mumbai LNG-Terminal;2022;31.12.2022;2020.40;1210.80;0.00
+1004;Mumbai Offshore-Plattform A;2022;31.12.2022;8600.80;0.00;0.00
+1005;Mumbai Offshore-Plattform B;2022;31.12.2022;7500.50;0.00;0.00
+1006;Mumbai Kraftwerk;2022;31.12.2022;5280.00;2820.30;0.00
+1007;Mumbai Wasseraufbereitungsanlage;2022;31.12.2022;305.10;172.40;35.20
+1008;Mumbai Verwaltungszentrale;2022;31.12.2022;90.20;200.10;61.80
+1009;Mumbai Lagerkomplex;2022;31.12.2022;172.30;90.50;23.60
+2001;Delhi Verarbeitungswerk;2022;31.12.2022;1800.30;1060.20;198.50
+2002;Delhi Buerogebaeude - Sektor 4;2022;31.12.2022;36.50;192.00;84.20
+2003;Delhi Kuehlhaus;2022;31.12.2022;605.80;860.10;0.00
+3001;Chennai Hafenanlagen;2022;31.12.2022;1190.40;462.80;52.10
+3002;Chennai Produktionsanlage;2022;31.12.2022;2780.10;1280.00;0.00
+4001;Bangalore IT-Campus Ost;2022;31.12.2022;21.00;2360.40;398.50
+4002;Bangalore IT-Campus West;2022;31.12.2022;17.80;1910.20;365.00

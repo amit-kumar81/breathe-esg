@@ -1,0 +1,17 @@
+Werks;Werksname;Buchungsjahr;Bericht_Datum;Scope1_tCO2e;Scope2_tCO2e;Scope3_tCO2e
+1001;Mumbai Raffinerie - Einheit 1;2023;30.06.2023;2210.40;1155.20;92.60
+1002;Mumbai Petrochemiewerk;2023;30.06.2023;3060.00;1725.38;0.00
+1003;Mumbai LNG-Terminal;2023;30.06.2023;1050.15;625.30;0.00
+1004;Mumbai Offshore-Plattform A;2023;30.06.2023;4375.13;0.00;0.00
+1005;Mumbai Offshore-Plattform B;2023;30.06.2023;3820.40;0.00;0.00
+1006;Mumbai Kraftwerk;2023;30.06.2023;2715.00;1445.25;0.00
+1007;Mumbai Wasseraufbereitungsanlage;2023;30.06.2023;160.20;90.10;18.50
+1008;Mumbai Verwaltungszentrale;2023;30.06.2023;47.50;105.25;32.10
+1009;Mumbai Lagerkomplex;2023;30.06.2023;90.38;47.65;12.30
+2001;Delhi Verarbeitungswerk;2023;30.06.2023;1870.25;1102.40;210.00
+2002;Delhi Buerogebaeude - Sektor 4;2023;30.06.2023;38.10;198.75;88.40
+2003;Delhi Kuehlhaus;2023;30.06.2023;620.50;890.20;0.00
+3001;Chennai Hafenanlagen;2023;30.06.2023;1240.80;480.60;55.30
+3002;Chennai Produktionsanlage;2023;30.06.2023;2890.45;1320.00;0.00
+4001;Bangalore IT-Campus Ost;2023;30.06.2023;22.30;2450.80;415.20
+4002;Bangalore IT-Campus West;2023;30.06.2023;18.70;1980.40;380.60

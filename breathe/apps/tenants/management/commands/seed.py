@@ -6,119 +6,117 @@ from breathe.apps.ingest.models import DataSource
 
 
 class Command(BaseCommand):
-    help = 'Seed demo data: tenant, analyst user, and a sample data source'
+    help = 'Seed demo data: tenant, users, and one DataSource per source type'
 
     def handle(self, *args, **options):
-        # Demo tenant
+        # --- Tenant ---
         tenant, created = Tenant.objects.get_or_create(
             slug='demo-company',
-            defaults={
-                'name': 'Demo Company',
-                'plan': 'STARTER',
-                'is_active': True,
-            }
+            defaults={'name': 'Demo Company', 'plan': 'STARTER', 'is_active': True},
         )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created tenant: {tenant.name}'))
-        else:
-            self.stdout.write(f'Tenant already exists: {tenant.name}')
+        self.stdout.write(f'{"Created" if created else "Exists"}: tenant {tenant.name}')
 
-        # Demo analyst user
-        user, created = User.objects.get_or_create(
+        # --- Users ---
+        analyst, created = User.objects.get_or_create(
             username='analyst@demo.com',
-            defaults={
-                'email': 'analyst@demo.com',
-                'first_name': 'Demo',
-                'last_name': 'Analyst',
-            }
+            defaults={'email': 'analyst@demo.com', 'first_name': 'Demo', 'last_name': 'Analyst'},
         )
         if created:
-            user.set_password('changeme123')
-            user.save()
-            self.stdout.write(self.style.SUCCESS(f'Created user: {user.username}'))
-        else:
-            self.stdout.write(f'User already exists: {user.username}')
-
-        # UserProfile linking user to tenant
-        profile, created = UserProfile.objects.get_or_create(
-            user=user,
-            defaults={
-                'tenant': tenant,
-                'role': 'ANALYST',
-                'is_active': True,
-            }
+            analyst.set_password('changeme123')
+            analyst.save()
+        UserProfile.objects.get_or_create(
+            user=analyst,
+            defaults={'tenant': tenant, 'role': 'ANALYST', 'is_active': True},
         )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created profile: {profile}'))
-        else:
-            self.stdout.write(f'Profile already exists: {profile}')
+        self.stdout.write(f'{"Created" if created else "Exists"}: analyst@demo.com')
 
-        # Demo admin user
         admin_user, created = User.objects.get_or_create(
             username='admin@demo.com',
             defaults={
-                'email': 'admin@demo.com',
-                'first_name': 'Demo',
-                'last_name': 'Admin',
-                'is_staff': True,
-                'is_superuser': True,
-            }
+                'email': 'admin@demo.com', 'first_name': 'Demo', 'last_name': 'Admin',
+                'is_staff': True, 'is_superuser': True,
+            },
         )
         if created:
             admin_user.set_password('admin123')
             admin_user.save()
-            self.stdout.write(self.style.SUCCESS(f'Created admin: {admin_user.username}'))
-        else:
-            self.stdout.write(f'Admin already exists: {admin_user.username}')
-
         UserProfile.objects.get_or_create(
             user=admin_user,
-            defaults={'tenant': tenant, 'role': 'ADMIN', 'is_active': True}
+            defaults={'tenant': tenant, 'role': 'ADMIN', 'is_active': True},
         )
+        self.stdout.write(f'{"Created" if created else "Exists"}: admin@demo.com')
 
-        # Sample data sources (needed to test uploads)
+        # --- Data Sources (one per source type) ---
+        # Each field_mapping maps the actual CSV column header to our internal standard field name.
+        # These match the sample files in sap_samples/, utility_samples/, travel_samples/.
+
         sources = [
             {
-                'name': 'Demo SAP Export',
+                'name': 'SAP GHG Export (Semicolon CSV)',
                 'source_type': 'SAP',
-                'description': 'Sample SAP CSV export: Plant_Name, Scope1_MT, Scope2_MT, Year',
+                'description': (
+                    'Flat-file export from SAP Environmental Compliance module via SE16N. '
+                    'Semicolon-delimited, German column names, dates in DD.MM.YYYY, '
+                    'values already in tCO2e (metric tons CO2 equivalent).'
+                ),
                 'field_mapping': {
-                    'Plant_Name': 'facility_name',
-                    'Scope1_MT': 'scope_1_emissions',
-                    'Scope2_MT': 'scope_2_emissions',
-                    'Year': 'reporting_year',
+                    'Werksname':     'facility_name',
+                    'Buchungsjahr':  'reporting_year',
+                    'Scope1_tCO2e':  'scope_1_emissions',
+                    'Scope2_tCO2e':  'scope_2_emissions',
+                    'Scope3_tCO2e':  'scope_3_emissions',
                 },
             },
             {
-                'name': 'SAP GHG Export (mtCO2e)',
-                'source_type': 'CSV',
-                'description': 'SAP GHG export: Location, Scope1_mtCO2e, Scope2_mtCO2e, Scope3_mtCO2e, Fiscal_Year',
+                'name': 'Utility Portal CSV (MSEDCL/Adani format)',
+                'source_type': 'UTILITY',
+                'description': (
+                    'CSV export from electricity utility web portal (MSEDCL/Adani Electricity Mumbai). '
+                    'Billing periods do not align with calendar months. '
+                    'Raw kWh usage; emission factor applied during normalization '
+                    '(CEA India 2022-23 baseline: 0.716 kgCO2e/kWh → Scope 2).'
+                ),
                 'field_mapping': {
-                    'Location': 'facility_name',
-                    'Scope1_mtCO2e': 'scope_1_emissions',
-                    'Scope2_mtCO2e': 'scope_2_emissions',
-                    'Scope3_mtCO2e': 'scope_3_emissions',
-                    'Fiscal_Year': 'reporting_year',
+                    'Site_Name':     'facility_name',
+                    'Billing_Start': 'billing_period_start',
+                    'Billing_End':   'billing_period_end',
+                    'Usage_kWh':     'usage_kwh',
+                },
+            },
+            {
+                'name': 'Concur Travel Expense Export',
+                'source_type': 'TRAVEL',
+                'description': (
+                    'CSV export from SAP Concur expense management system. '
+                    'One row per expense line item (flight segment, hotel night, or ground transport). '
+                    'CO2e calculated per row using ICAO 2023 (flights) and DEFRA 2023 (hotels, cars). '
+                    'All travel is Scope 3 Category 6: Business Travel.'
+                ),
+                'field_mapping': {
+                    'Employee_ID':       'employee_id',
+                    'Transaction_Date':  'transaction_date',
+                    'Expense_Type':      'expense_type',
+                    'Origin_IATA':       'origin_iata',
+                    'Destination_IATA':  'destination_iata',
+                    'Distance_km':       'distance_km',
+                    'Hotel_Nights':      'hotel_nights',
+                    'Business_Purpose':  'business_purpose',
                 },
             },
         ]
 
-        for source_data in sources:
+        for sd in sources:
             ds, created = DataSource.objects.get_or_create(
                 tenant_id=tenant,
-                name=source_data['name'],
+                name=sd['name'],
                 defaults={
-                    'source_type': source_data['source_type'],
-                    'description': source_data['description'],
-                    'field_mapping': source_data['field_mapping'],
-                }
+                    'source_type': sd['source_type'],
+                    'description': sd['description'],
+                    'field_mapping': sd['field_mapping'],
+                },
             )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f'Created data source: {ds.name}'))
-            else:
-                self.stdout.write(f'Data source already exists: {ds.name}')
+            self.stdout.write(f'{"Created" if created else "Exists"}: DataSource "{ds.name}"')
 
         self.stdout.write(self.style.SUCCESS('\nSeed complete.'))
-        self.stdout.write('  Login: analyst@demo.com / changeme123')
-        self.stdout.write('  Admin: admin@demo.com / admin123')
-        self.stdout.write('  Tenant: Demo Company (demo-company)')
+        self.stdout.write('  analyst@demo.com / changeme123')
+        self.stdout.write('  admin@demo.com   / admin123')

@@ -179,15 +179,16 @@ class IngestionViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
             # Delete old parsed records (idempotency)
             ParsedRecord.objects.filter(ingestion_id=ingestion.id).delete()
 
-            # Parse CSV
-            csv_reader = csv.DictReader(io.StringIO(ingestion.raw_csv_content))
-
-            # Detect dialect if possible
+            # Detect delimiter before creating the reader (SAP exports use semicolons)
             try:
-                dialect = csv.Sniffer().sniff(ingestion.raw_csv_content[:1024])
-                ingestion.dialect_detected = f"{dialect.delimiter}-delimited"
-            except:
+                dialect = csv.Sniffer().sniff(ingestion.raw_csv_content[:2048], delimiters=',;\t|')
+                delimiter = dialect.delimiter
+                ingestion.dialect_detected = f"{delimiter}-delimited"
+            except Exception:
+                delimiter = ','
                 ingestion.dialect_detected = "auto"
+
+            csv_reader = csv.DictReader(io.StringIO(ingestion.raw_csv_content), delimiter=delimiter)
 
             parsed_count = 0
             error_count = 0
