@@ -56,6 +56,7 @@ function UploadPage() {
     const justUploadedId = data.ingestion_id
     const activeId = selectedIngestionId || justUploadedId
     const allIngestions = historyData?.results || []
+    const historyLoading = !historyData
 
     return (
       <div className="page-container" style={{ maxWidth: 900 }}>
@@ -87,7 +88,11 @@ function UploadPage() {
                 </tr>
               </thead>
               <tbody>
-                {allIngestions.map((ing) => {
+                {historyLoading ? (
+                  <tr><td colSpan={6} style={{ ...styles.historyTd, textAlign: 'center', color: '#888' }}>Loading uploads…</td></tr>
+                ) : allIngestions.length === 0 ? (
+                  <tr><td colSpan={6} style={{ ...styles.historyTd, textAlign: 'center', color: '#888' }}>No uploads found</td></tr>
+                ) : allIngestions.map((ing) => {
                   const isSelected = ing.id === activeId
                   const isNew = ing.id === justUploadedId
                   return (
