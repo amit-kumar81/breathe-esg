@@ -1,4 +1,4 @@
-"""
+"""  # noqa
 Analytics views — read approved NormalizedRecords directly.
 
 No intermediate EmissionsDataPoint table. The pipeline is:
