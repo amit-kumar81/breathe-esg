@@ -1,12 +1,4 @@
-"""
-Chunk 2.3: Multi-Tenancy Isolation - Auth URLs
-
-Auth endpoints:
-- POST /api/auth/login/ - Login with username + password
-- POST /api/auth/refresh/ - Refresh access token
-- GET /api/auth/me/ - Get current user profile
-- POST /api/auth/logout/ - Logout (optional, invalidate token)
-"""
+"""Auth URL routing."""
 
 from django.urls import path
 from .views import (

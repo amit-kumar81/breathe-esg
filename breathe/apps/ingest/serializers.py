@@ -1,11 +1,4 @@
-"""
-DRF Serializers for ingest endpoints.
-
-Design:
-- Flat, simple serializers (no nested relations for MVP)
-- Use ListField to accept raw CSV rows
-- Validate at serializer level (file format, size, etc.)
-"""
+"""Serializers for ingest endpoints (upload, list, detail)."""
 
 import csv
 import io
@@ -69,10 +62,7 @@ class IngestionUploadSerializer(serializers.Serializer):
         except DataSource.DoesNotExist:
             raise serializers.ValidationError("DataSource not found")
 
-        # Tenant isolation: user's tenant must match data source's tenant
-        # Note: In Chunk 2.3, we'll add actual user auth. For now, this is a placeholder.
         if not hasattr(request, 'tenant_id'):
-            # For now, allow all. This will be fixed in Chunk 2.3 (auth)
             pass
         else:
             if str(data_source.tenant_id) != str(request.tenant_id):
@@ -122,13 +112,7 @@ class RawIngestionListSerializer(serializers.ModelSerializer):
 
 
 class RawIngestionDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer for RawIngestion detail view (includes original CSV content).
-
-    Design: Pure Relational (Option 1)
-    - raw_csv_content: Original CSV file as text (single source of truth)
-    - Parsing happens on-demand in Chunk 1.3 (no data loss risk)
-    """
+    """Serializer for RawIngestion detail view (includes original CSV content)."""
     data_source = DataSourceSerializer(source='data_source_id', read_only=True)
 
     class Meta:

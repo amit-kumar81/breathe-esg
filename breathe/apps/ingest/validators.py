@@ -1,13 +1,6 @@
 """
-Field validators for emissions data normalization.
-
-Chunk 1.4: Schema Definition & Normalization Rules
-
-Each validator:
-- Takes a raw string value from CSV
-- Returns (is_valid: bool, normalized_value: any, error_message: str)
-- Handles None/empty gracefully
-- Logs validation errors
+Field validators for emissions data.
+Each returns (is_valid: bool, normalized_value: any, error_message: str).
 """
 
 import logging
@@ -22,18 +15,6 @@ MAX_YEAR = 2100
 
 
 def validate_facility_name(value, required=True):
-    """
-    Validate facility name (string, required by default).
-
-    Returns:
-        tuple: (is_valid, normalized_value, error_message)
-
-    Examples:
-        validate_facility_name("Plant A") → (True, "Plant A", None)
-        validate_facility_name("  Plant B  ") → (True, "Plant B", None)  # Trimmed
-        validate_facility_name("") → (False, None, "Facility name is required")
-        validate_facility_name(None) → (False, None, "Facility name is required")
-    """
     # Handle None and empty strings
     if value is None or value == "":
         if required:
@@ -59,23 +40,6 @@ def validate_facility_name(value, required=True):
 
 
 def validate_emissions_value(value, allow_zero=True, allow_negative=False):
-    """
-    Validate emissions numeric value (Decimal).
-
-    Args:
-        value: String or numeric value from CSV
-        allow_zero: If False, require value > 0
-        allow_negative: If True, allow negative values (credit scenarios)
-
-    Returns:
-        tuple: (is_valid, normalized_value, error_message)
-
-    Examples:
-        validate_emissions_value("1234.56") → (True, Decimal("1234.56"), None)
-        validate_emissions_value("0") → (True, Decimal("0"), None) if allow_zero=True
-        validate_emissions_value("abc") → (False, None, "Invalid number format")
-        validate_emissions_value("-100") → (False, None, "Value must be non-negative") if allow_negative=False
-    """
     # Handle None and empty strings
     if value is None or value == "":
         return False, None, "Emissions value is required"
@@ -106,24 +70,6 @@ def validate_emissions_value(value, allow_zero=True, allow_negative=False):
 
 
 def validate_reporting_year(value, min_year=MIN_YEAR, max_year=MAX_YEAR):
-    """
-    Validate reporting year (integer).
-
-    Args:
-        value: String or numeric year from CSV
-        min_year: Minimum valid year
-        max_year: Maximum valid year
-
-    Returns:
-        tuple: (is_valid, normalized_value, error_message)
-
-    Examples:
-        validate_reporting_year("2023") → (True, 2023, None)
-        validate_reporting_year(2023) → (True, 2023, None)
-        validate_reporting_year("2000") → (False, None, "Year out of range (1900-2100)")
-        validate_reporting_year("abc") → (False, None, "Invalid year format")
-        validate_reporting_year("") → (False, None, "Reporting year is required")
-    """
     # Handle None and empty strings
     if value is None or value == "":
         return False, None, "Reporting year is required"
@@ -143,17 +89,6 @@ def validate_reporting_year(value, min_year=MIN_YEAR, max_year=MAX_YEAR):
 
 
 def validate_data_quality_score(value):
-    """
-    Validate data quality score (0-100).
-
-    Returns:
-        tuple: (is_valid, normalized_value, error_message)
-
-    Examples:
-        validate_data_quality_score("85") → (True, 85, None)
-        validate_data_quality_score("") → (True, 0, None)  # Default to 0
-        validate_data_quality_score("150") → (False, None, "Score must be 0-100")
-    """
     # Handle None and empty strings - default to 0
     if value is None or value == "" or value == "0":
         return True, 0, None
@@ -173,17 +108,6 @@ def validate_data_quality_score(value):
 
 
 def validate_field_value(field_name, value, field_config):
-    """
-    Generic field validator dispatcher.
-
-    Args:
-        field_name: Name of field (facility_name, scope_1_emissions, etc.)
-        value: Raw value from CSV
-        field_config: Configuration dict with validation rules
-
-    Returns:
-        tuple: (is_valid, normalized_value, error_message)
-    """
     field_type = field_config.get('type')  # 'string', 'number', 'year', 'score'
     required = field_config.get('required', True)
 
@@ -255,35 +179,10 @@ STANDARD_FIELDS = {
 
 
 def calculate_data_quality_score(normalized_values, validation_errors):
-    """
-    Calculate a data quality score (0-100) based on:
-    - Presence of optional fields
-    - Validation error count
-    - Completeness
-
-    Args:
-        normalized_values: Dict of normalized values
-        validation_errors: List of validation error dicts
-
-    Returns:
-        int: Score 0-100
-
-    Scoring:
-    - Start at 100
-    - -10 for each validation error
-    - -5 for each missing optional field (scope_2, scope_3)
-    - Floor at 0
-    """
     score = 100
-
-    # Deduct for validation errors
     score -= len(validation_errors) * 10
-
-    # Deduct for missing optional fields
     if not normalized_values.get('scope_2_emissions'):
         score -= 5
     if not normalized_values.get('scope_3_emissions'):
         score -= 5
-
-    # Floor at 0
     return max(0, score)

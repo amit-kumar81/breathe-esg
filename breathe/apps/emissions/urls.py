@@ -1,8 +1,4 @@
-"""
-URL routing for emissions API endpoints.
-
-Chunk 2.1: Django REST Framework Setup & Serializers
-"""
+"""URL routing for emissions API endpoints."""
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter

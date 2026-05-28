@@ -26,9 +26,7 @@ from datetime import datetime
 
 logger = logging.getLogger('breathe.ingest')
 
-# ---------------------------------------------------------------------------
 # Emission factors (all in mtCO2e per unit)
-# ---------------------------------------------------------------------------
 
 # India Central Electricity Authority (CEA) 2022-23 CO2 baseline (Scope 2)
 INDIA_GRID_FACTOR_MT_PER_KWH = Decimal('0.000716')
@@ -96,9 +94,7 @@ def _to_decimal(value, field_name='value'):
         return None
 
 
-# ---------------------------------------------------------------------------
 # SAP normalization
-# ---------------------------------------------------------------------------
 
 def normalize_sap_record(raw_values, field_mapping):
     """
@@ -168,9 +164,7 @@ def normalize_sap_record(raw_values, field_mapping):
     return normalized, errors
 
 
-# ---------------------------------------------------------------------------
 # Utility normalization
-# ---------------------------------------------------------------------------
 
 def normalize_utility_record(raw_values, field_mapping):
     """
@@ -237,9 +231,7 @@ def normalize_utility_record(raw_values, field_mapping):
     return normalized, errors
 
 
-# ---------------------------------------------------------------------------
 # Travel normalization
-# ---------------------------------------------------------------------------
 
 def normalize_travel_record(raw_values, field_mapping):
     """
@@ -351,9 +343,7 @@ def normalize_travel_record(raw_values, field_mapping):
     return normalized, errors
 
 
-# ---------------------------------------------------------------------------
 # Main dispatcher
-# ---------------------------------------------------------------------------
 
 def normalize_parsed_record(parsed_record, data_source):
     """
@@ -413,15 +403,12 @@ def _calculate_quality_score(normalized_values, validation_errors, source_type):
     return max(0, score)
 
 
-# ---------------------------------------------------------------------------
-# Bulk normalization (called from views_workflow.py)
-# ---------------------------------------------------------------------------
+# Bulk normalization
 
 def normalize_ingestion(raw_ingestion):
     """
-    Normalize all ParsedRecords in a RawIngestion.
-    Creates NormalizedRecord, EmissionsDataPoint, and ReviewTask for each row.
-    Idempotent: re-running deletes previous results first.
+    Normalize all ParsedRecords in a RawIngestion into NormalizedRecords (status=PENDING_REVIEW).
+    Idempotent: re-running deletes previous NormalizedRecords and ReviewTasks first.
     """
     from .models import ParsedRecord, NormalizedRecord
     from breathe.apps.review.models import ReviewTask

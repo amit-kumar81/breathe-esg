@@ -1,14 +1,4 @@
-"""
-Serializers for EmissionsDataPoint, NormalizedRecord, and related models.
-
-Chunk 2.1: Django REST Framework Setup & Serializers
-
-Design Philosophy:
-- Flatten nested JSON (normalized_values) for easier frontend consumption
-- Include related data (audit trail, validation errors) for full context
-- Gracefully handle missing/invalid fields
-- Separate list vs. detail serializers for performance
-"""
+"""Serializers for EmissionsDataPoint (legacy) and NormalizedRecord."""
 
 from rest_framework import serializers
 from breathe.apps.emissions.models import EmissionsDataPoint

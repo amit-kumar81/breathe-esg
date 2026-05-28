@@ -1,9 +1,4 @@
-"""
-Chunk 2.3: Multi-Tenancy Isolation - Auth Serializers
-
-LoginSerializer: Validates username/password, returns JWT tokens
-UserProfileSerializer: Returns user info including tenant_id
-"""
+"""Auth serializers: login, user profile, token refresh."""
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
@@ -37,47 +32,29 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    """
-    Login endpoint serializer.
-
-    Input: username, password
-    Output: access token, refresh token, user profile
-
-    Why separate from TokenObtainPairSerializer:
-    - Custom response includes UserProfile data (tenant, role)
-    - Standard simplejwt response is minimal (just tokens)
-    """
+    """Validates credentials and returns JWT tokens + user profile."""
     username = serializers.CharField(max_length=255, required=True)
     password = serializers.CharField(max_length=255, write_only=True, required=True)
 
     def validate(self, attrs):
-        """
-        Validate username/password and return tokens + user profile.
-        """
         from django.contrib.auth import authenticate
 
         username = attrs.get('username')
         password = attrs.get('password')
 
-        # Authenticate user
         user = authenticate(username=username, password=password)
         if not user:
             raise serializers.ValidationError("Invalid username or password")
 
-        # Check if user has a profile (multi-tenancy requirement)
         try:
             profile = user.profile
         except UserProfile.DoesNotExist:
             raise serializers.ValidationError("User is not associated with any tenant")
 
-        # Check if user is active
         if not profile.is_active:
             raise serializers.ValidationError("User account is disabled")
 
-        # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
-
-        # Embed tenant_id in token claims (useful for frontend)
         refresh['tenant_id'] = str(profile.tenant_id)
         refresh['role'] = profile.role
 
@@ -89,9 +66,6 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
     def to_representation(self, instance):
-        """
-        Custom response format.
-        """
         return {
             'access': instance['access'],
             'refresh': instance['refresh'],

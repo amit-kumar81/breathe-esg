@@ -1,14 +1,4 @@
-"""
-Django admin configuration for audit logs.
-
-Chunk 1.6: Audit Logging (Every Change)
-
-Design Philosophy:
-- Read-only admin interface (audit logs are immutable)
-- Powerful filtering and search for forensic analysis
-- Display change_summary as formatted JSON
-- Tenant filtering for multi-tenancy compliance
-"""
+"""Read-only Django admin for AuditLog entries."""
 
 from django.contrib import admin
 from django.utils.html import format_html
@@ -19,18 +9,7 @@ from .models import AuditLog
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
-    """
-    Read-only admin interface for AuditLog.
-    
-    Features:
-    - View all audit entries (immutable)
-    - Filter by object type, action, tenant, date range
-    - Search by object_id or user
-    - Pretty-print JSON change_summary
-    - No edit/delete capabilities
-    """
 
-    # Display settings
     list_display = (
         'timestamp_display',
         'action_badge',
@@ -58,7 +37,6 @@ class AuditLogAdmin(admin.ModelAdmin):
         'ip_address',
     )
 
-    # Detail view
     fieldsets = (
         ('Identification', {
             'fields': ('id', 'object_type', 'object_id', 'tenant_id'),
@@ -75,7 +53,6 @@ class AuditLogAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Disable add/edit/delete
     def has_add_permission(self, request):
         return False
 
@@ -85,14 +62,11 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    # Custom display methods
     def timestamp_display(self, obj):
-        """Display timestamp in human-readable format."""
         return obj.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')
     timestamp_display.short_description = 'When'
 
     def action_badge(self, obj):
-        """Display action as colored badge."""
         colors = {
             'CREATE': '#28a745',   # green
             'UPDATE': '#ffc107',   # yellow
@@ -108,26 +82,22 @@ class AuditLogAdmin(admin.ModelAdmin):
     action_badge.short_description = 'Action'
 
     def object_id_short(self, obj):
-        """Display shortened object_id (first 8 chars)."""
         return f"{obj.object_id[:8]}..."
     object_id_short.short_description = 'Object ID'
 
     def user_display(self, obj):
-        """Display user who made the change."""
         if obj.user_id:
             return f"{obj.user_id.username} ({obj.user_id.email})"
         return "(system)"
     user_display.short_description = 'User'
 
     def tenant_id_display(self, obj):
-        """Display tenant name."""
         if obj.tenant_id:
             return str(obj.tenant_id)
         return "(unknown)"
     tenant_id_display.short_description = 'Tenant'
 
     def change_summary_formatted(self, obj):
-        """Display change_summary as formatted JSON."""
         if isinstance(obj.change_summary, dict):
             formatted = json.dumps(obj.change_summary, indent=2, default=str)
         else:

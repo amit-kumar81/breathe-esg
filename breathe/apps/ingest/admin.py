@@ -48,7 +48,6 @@ class NormalizedRecordAdmin(admin.ModelAdmin):
     """
     Admin for normalized records.
 
-    Design: Chunk 1.4 - Schema Definition & Normalization Rules
     - Read-only view of normalized records
     - Shows validation state and quality score
     - Links to parsed records for debugging

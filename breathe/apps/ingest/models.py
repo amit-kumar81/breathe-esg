@@ -1,11 +1,5 @@
 """
-Ingest models for raw data reception.
-
-Design Philosophy:
-- RawIngestion stores unprocessed data exactly as received (no loss of information).
-- ParsedRecord converts raw rows into structured dictionaries (still unvalidated).
-- Both use JSONB for flexibility; relational keys for fast querying.
-- Tenant isolation via tenant_id foreign key on every model.
+Ingest models: RawIngestion → ParsedRecord → NormalizedRecord.
 """
 
 import uuid
@@ -51,30 +45,12 @@ class DataSource(models.Model):
 
 
 class RawIngestion(models.Model):
-    """
-    Raw data as received from the data source.
-    Stored as original CSV text—SINGLE SOURCE OF TRUTH.
-
-    Design Philosophy: Pure Relational (Option 1)
-    - raw_csv_content: Original CSV file text (never modified)
-    - Parsing happens on-demand in Chunk 1.3
-    - No data loss, no mismatch between formats
-
-    Why not JSONB cache?
-    - If we cache parsed rows, they could become stale
-    - If parsing is lossy, original and cache could mismatch
-    - Single source of truth (CSV) is simpler, safer
-    - ParsedRecords created in Chunk 1.3 become the "parsed cache"
-    """
+    """Stores the original CSV file exactly as uploaded. Immutable after creation."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant_id = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='raw_ingestions')
     data_source_id = models.ForeignKey(DataSource, on_delete=models.CASCADE, related_name='ingestions')
 
-    # --- SINGLE SOURCE OF TRUTH ---
-    # Original CSV file as TEXT (unparsed, exactly as uploaded)
-    # Example: "Plant_Name,Scope1,Year\nPlant A,1000,2023\nPlant B,2000,2023"
-    # This is immutable after creation—can always be re-parsed
-    raw_csv_content = models.TextField(help_text="Original CSV file content as text (never modified, source of truth)")
+    raw_csv_content = models.TextField(help_text="Original CSV file content as text (never modified)")
 
     # Metadata
     filename = models.CharField(max_length=255)
@@ -162,7 +138,6 @@ class NormalizedRecord(models.Model):
     parsed_record_id = models.ForeignKey(ParsedRecord, on_delete=models.CASCADE, related_name='normalized_record')
     tenant_id = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='normalized_records')
 
-    # --- Standard relational fields (fast queries) ---
     facility_name = models.CharField(max_length=255, db_index=True, null=True, blank=True)
     scope_1_emissions = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
     scope_2_emissions = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
@@ -170,13 +145,11 @@ class NormalizedRecord(models.Model):
     reporting_year = models.IntegerField(db_index=True, null=True, blank=True)
     data_quality_score = models.IntegerField(default=0, help_text="0-100 quality score")
 
-    # --- JSONB fields (flexible) ---
     normalized_values = models.JSONField(default=dict)
     validation_errors = models.JSONField(default=list)
     data_quality_flags = models.JSONField(default=list)
     is_valid = models.BooleanField(default=False, db_index=True)
 
-    # --- Review lifecycle ---
     review_status = models.CharField(
         max_length=20, choices=REVIEW_STATUS_CHOICES,
         default='PENDING_REVIEW', db_index=True,

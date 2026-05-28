@@ -1,6 +1,4 @@
-"""
-Chunk 2.3: Multi-Tenancy Isolation - Auth App Config
-"""
+"""Auth app config."""
 
 from django.apps import AppConfig
 
@@ -12,5 +10,4 @@ class AuthConfig(AppConfig):
     verbose_name = 'Authentication & Multi-Tenancy'
 
     def ready(self):
-        # Import signals if needed
         pass

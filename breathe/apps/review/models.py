@@ -1,17 +1,6 @@
 """
-Review workflow models for analyst approval.
-
-Chunk 1.5: Analyst Review & Approval Workflow
-
-Design Philosophy:
-- ReviewTask: tracks which records need analyst review (is_valid=False)
-- ReviewApproval: analyst's decision (approved/rejected with reason)
-- EmissionsDataPoint: final approved records (ready for analytics)
-
-Audit Trail:
-- Every review decision is logged with analyst, timestamp, reason
-- Approval is immutable (audit log tracks changes)
-- Can reject and re-submit (loops back to normalization)
+Review workflow models (ReviewTask, ReviewApproval).
+These are kept for DB compatibility; the active review flow now uses NormalizedRecord.review_status.
 """
 
 import uuid
@@ -21,22 +10,7 @@ from breathe.apps.ingest.models import NormalizedRecord
 
 
 class ReviewTask(models.Model):
-    """
-    A normalized record waiting for analyst review.
-
-    Created when:
-    - NormalizedRecord.is_valid = False (validation errors)
-    - Analyst wants to double-check high-value records
-    - Data quality_score < threshold
-
-    Workflow:
-    1. Analyst sees list of ReviewTasks in dashboard
-    2. Clicks on task, sees NormalizedRecord + validation_errors
-    3. Makes decision: approve, reject, or request changes
-    4. Approves → creates EmissionsDataPoint
-    5. Rejects → marked as rejected, removed from queue
-    6. Request changes → loops back to normalization
-    """
+    """Legacy review task model. Kept for existing data; not created by current pipeline."""
     STATUS_CHOICES = (
         ('PENDING', 'Awaiting review'),
         ('APPROVED', 'Approved by analyst'),

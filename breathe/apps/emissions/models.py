@@ -1,11 +1,5 @@
 """
-Emissions data models (normalized).
-
-Design Philosophy:
-- Hybrid Relational + JSONB: frequently queried fields are relational, flexible fields are JSONB.
-- Relational fields (facility_name, emissions_value, year, methodology) allow fast filtering and aggregation.
-- JSONB fields (normalized_values, validation_errors, data_quality_flags) handle flexible, evolving schemas.
-- is_valid flag enables quick "approved vs. needs review" queries.
+EmissionsDataPoint model (legacy — kept for DB compatibility; no longer written to by the pipeline).
 """
 
 import uuid

@@ -1,8 +1,4 @@
-"""
-Chunk 2.3: Multi-Tenancy Isolation - Auth Admin
-
-Django admin interface for managing tenants and user profiles.
-"""
+"""Django admin for user profiles."""
 
 from django.contrib import admin
 from .models import UserProfile
@@ -29,13 +25,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        """
-        Admin users see all profiles.
-        Tenant admins see only profiles in their tenant.
-        """
         queryset = super().get_queryset(request)
-
-        # If user is not superuser, filter by their tenant
         if not request.user.is_superuser:
             try:
                 tenant_id = request.user.profile.tenant_id

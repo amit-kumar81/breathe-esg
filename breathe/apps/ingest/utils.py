@@ -44,22 +44,6 @@ def compute_file_hash(file_obj):
 
 
 def parse_csv_to_rows(file_obj, strict=True):
-    """
-    Parse CSV file into list of dictionaries.
-
-    Used in Chunk 1.2 for VALIDATION ONLY (to count rows).
-    Does NOT store parsed rows—only raw_csv_content is stored.
-
-    Args:
-        file_obj: Django UploadedFile object
-        strict: If True, raise error on malformed rows. If False, skip.
-
-    Returns:
-        tuple: (list of row dicts, line count, list of errors)
-
-    Raises:
-        ValueError: If file is not valid CSV
-    """
     file_obj.seek(0)
     rows = []
     errors = []
@@ -162,9 +146,6 @@ def parse_raw_csv_content(raw_csv_text, ingestion_id=None, forced_delimiter=None
     """
     Parse raw CSV text into list of dictionaries.
 
-    This is called in Chunk 1.3 on-demand (NOT in Chunk 1.2).
-    Uses dialect detection to handle various CSV formats.
-
     Args:
         raw_csv_text: Original CSV content as string
         ingestion_id: For logging purposes (optional)
@@ -236,13 +217,6 @@ def parse_raw_csv_content(raw_csv_text, ingestion_id=None, forced_delimiter=None
 def parse_raw_ingestion(raw_ingestion, source_type=None):
     """
     Parse a RawIngestion into ParsedRecords.
-
-    Process (Chunk 1.3):
-    1. Read raw_csv_content (source of truth)
-    2. Parse with dialect detection (SAP always uses ';')
-    3. Clear existing ParsedRecords (idempotent re-parsing)
-    4. Create new ParsedRecords for each row
-    5. Return summary
 
     Args:
         raw_ingestion: RawIngestion object (contains raw_csv_content)

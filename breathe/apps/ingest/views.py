@@ -1,15 +1,4 @@
-"""
-Views for ingest endpoints.
-
-Chunk 1.2:
-- POST /api/ingest/upload/ - Accept CSV file upload, return ingestion_id
-
-Design:
-- No async/Celery yet (synchronous for MVP)
-- File stored in DB (JSONB) for full auditability
-- Idempotency: same file hash = same ingestion_id returned
-- Multi-tenancy: validated at view level (placeholder for now)
-"""
+"""Ingest views: upload, parse, normalize, list, detail."""
 
 import logging
 from django.db.models import F, Count
@@ -104,9 +93,6 @@ class IngestionViewSet(viewsets.ViewSet):
             csv_text_content = file_obj.read().decode('utf-8')
             file_obj.seek(0)
 
-            # Note: We only store raw_csv_content (the original text)
-            # Parsing happens on-demand in Chunk 1.3
-            # This avoids any risk of data loss from parsing
             raw_ingestion = RawIngestion.objects.create(
                 tenant_id=data_source.tenant_id,
                 data_source_id=data_source,
@@ -249,34 +235,7 @@ class IngestionViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['post'], url_path='parse', url_name='parse')
     def parse(self, request, pk=None):
-        """
-        Parse a RawIngestion into ParsedRecords.
-
-        Endpoint: POST /api/ingest/{ingestion_id}/parse/
-
-        Process:
-        1. Get RawIngestion by ID
-        2. Verify it exists (return 404 if not)
-        3. Tenant isolation placeholder (Chunk 2.3 will add real check)
-        4. Parse rows: create ParsedRecord for each row
-        5. Return summary of parsing operation
-
-        Response (200 OK):
-        {
-            "ingestion_id": "uuid",
-            "status": "parsed",
-            "total_rows": 100,
-            "parsed_records_created": 100,
-            "empty_rows": 0,
-            "parsing_errors": [],
-            "message": "Successfully parsed 100 rows"
-        }
-
-        Idempotency:
-        - If called twice, existing ParsedRecords are deleted and recreated
-        - This allows re-parsing if logic changes
-        - Result is deterministic: same raw_content = same ParsedRecords
-        """
+        """POST /api/ingest/{id}/parse/ — parse CSV rows into ParsedRecords."""
         from .models import RawIngestion
         from .utils import parse_raw_ingestion
 
@@ -289,11 +248,6 @@ class IngestionViewSet(viewsets.ViewSet):
                 {"error": "RawIngestion not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
-
-        # Tenant isolation placeholder
-        # In Chunk 2.3, we'll verify request.user.tenant_id == raw_ingestion.tenant_id
-        if not hasattr(request, 'tenant_id'):
-            pass  # Allow for now
 
         # Parse the ingestion (source-type aware: SAP always uses semicolon)
         logger.info(f"Starting parse for ingestion {raw_ingestion.id}")
@@ -329,39 +283,7 @@ class IngestionViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['post'], url_path='normalize', url_name='normalize')
     def normalize(self, request, pk=None):
-        """
-        Normalize a RawIngestion into NormalizedRecords.
-
-        Chunk 1.4: Schema Definition & Normalization Rules
-
-        Endpoint: POST /api/ingest/{ingestion_id}/normalize/
-
-        Process:
-        1. Get RawIngestion by ID
-        2. Verify it exists (return 404 if not)
-        3. Get all ParsedRecords for this ingestion
-        4. Apply DataSource.field_mapping to map CSV columns to standard fields
-        5. Validate each field (facility_name, scope_1_emissions, reporting_year, etc.)
-        6. Create NormalizedRecord for each ParsedRecord with validation results
-        7. Return summary of normalization operation
-
-        Response (200 OK):
-        {
-            "ingestion_id": "uuid",
-            "status": "normalized",
-            "total_parsed_records": 100,
-            "total_normalized_records": 100,
-            "valid_records_count": 95,
-            "invalid_records_count": 5,
-            "normalization_errors": [],
-            "message": "Successfully normalized 100 records (95 valid, 5 invalid)"
-        }
-
-        Idempotency:
-        - If called twice, existing NormalizedRecords are deleted and recreated
-        - This allows re-normalization if validation logic changes
-        - Result is deterministic: same ParsedRecords = same NormalizedRecords
-        """
+        """POST /api/ingest/{id}/normalize/ — normalize all ParsedRecords for this ingestion."""
         from .models import RawIngestion
         from .normalization import normalize_ingestion
 
@@ -374,11 +296,6 @@ class IngestionViewSet(viewsets.ViewSet):
                 {"error": "RawIngestion not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
-
-        # Tenant isolation placeholder
-        # In Chunk 2.3, we'll verify request.user.tenant_id == raw_ingestion.tenant_id
-        if not hasattr(request, 'tenant_id'):
-            pass  # Allow for now
 
         # Check that ParsedRecords exist
         from .models import ParsedRecord
