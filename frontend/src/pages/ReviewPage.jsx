@@ -9,6 +9,7 @@ function ReviewPage() {
 
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('PENDING')
+  const [hoveredPager, setHoveredPager] = useState(null)
   const [selectedTaskId, setSelectedTaskId] = useState(null)
   const [actionNotes, setActionNotes] = useState('')
   const [action, setAction] = useState(null)
@@ -151,8 +152,16 @@ function ReviewPage() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={!taskList?.previous}
-              className="pager-btn"
-              style={{ ...styles.pageBtn, opacity: taskList?.previous ? 1 : 0.4 }}
+              onMouseEnter={() => taskList?.previous && setHoveredPager('prev')}
+              onMouseLeave={() => setHoveredPager(null)}
+              style={{
+                ...styles.pageBtn,
+                opacity: taskList?.previous ? 1 : 0.4,
+                cursor: taskList?.previous ? 'pointer' : 'not-allowed',
+                backgroundColor: hoveredPager === 'prev' ? '#d0d7de' : '#f0f0f0',
+                transform: hoveredPager === 'prev' ? 'translateY(1px)' : 'none',
+                transition: 'background-color 0.15s, transform 0.1s'
+              }}
             >
               ← Previous
             </button>
@@ -160,8 +169,16 @@ function ReviewPage() {
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={!taskList?.next}
-              className="pager-btn"
-              style={{ ...styles.pageBtn, opacity: taskList?.next ? 1 : 0.4 }}
+              onMouseEnter={() => taskList?.next && setHoveredPager('next')}
+              onMouseLeave={() => setHoveredPager(null)}
+              style={{
+                ...styles.pageBtn,
+                opacity: taskList?.next ? 1 : 0.4,
+                cursor: taskList?.next ? 'pointer' : 'not-allowed',
+                backgroundColor: hoveredPager === 'next' ? '#d0d7de' : '#f0f0f0',
+                transform: hoveredPager === 'next' ? 'translateY(1px)' : 'none',
+                transition: 'background-color 0.15s, transform 0.1s'
+              }}
             >
               Next →
             </button>

@@ -289,8 +289,8 @@ def normalize_travel_record(raw_values, field_mapping):
     # (emissions are attributed to the office the employee travels from)
     facility_name = (
         mapped.get('facility_name')
-        or raw_values.get('Employee_ID')
-        or f"{origin or 'Unknown'}"
+        or (origin and str(origin).strip())
+        or 'Business Travel'
     )
     normalized['facility_name'] = str(facility_name).strip()
 
