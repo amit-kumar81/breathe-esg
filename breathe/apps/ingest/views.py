@@ -137,11 +137,11 @@ class IngestionViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
-            tenant_id = request.user.profile.tenant_id
+            tenant = request.user.profile.tenant
         except Exception:
             return Response({'results': [], 'count': 0}, status=status.HTTP_200_OK)
         try:
-            ingestions = RawIngestion.objects.filter(tenant_id=tenant_id).order_by('-created_at')
+            ingestions = RawIngestion.objects.filter(tenant_id=tenant).order_by('-created_at')
             data = []
             for i in ingestions:
                 try:
