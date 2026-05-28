@@ -47,8 +47,17 @@ class Command(BaseCommand):
         self.stdout.write(f'{"Created" if created else "Exists"}: admin@demo.com')
 
         # --- Data Sources (one per source type) ---
-        # Each field_mapping maps the actual CSV column header to our internal standard field name.
-        # These match the sample files in sap_samples/, utility_samples/, travel_samples/.
+        # Remove any stale DataSources that were created by older versions of this seed
+        # (e.g. "Demo SAP Export", "SAP GHG Export (mtCO2e)") so the dropdown stays clean.
+        canonical_names = {
+            'SAP GHG Export (Semicolon CSV)',
+            'Utility Portal CSV (MSEDCL/Adani format)',
+            'Concur Travel Expense Export',
+        }
+        stale = DataSource.objects.filter(tenant_id=tenant).exclude(name__in=canonical_names)
+        deleted_count, _ = stale.delete()
+        if deleted_count:
+            self.stdout.write(self.style.WARNING(f'Removed {deleted_count} stale DataSource(s)'))
 
         sources = [
             {
