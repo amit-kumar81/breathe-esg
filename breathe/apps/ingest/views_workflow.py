@@ -179,14 +179,20 @@ class IngestionViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
             # Delete old parsed records (idempotency)
             ParsedRecord.objects.filter(ingestion_id=ingestion.id).delete()
 
-            # Detect delimiter before creating the reader (SAP exports use semicolons)
-            try:
-                dialect = csv.Sniffer().sniff(ingestion.raw_csv_content[:2048], delimiters=',;\t|')
-                delimiter = dialect.delimiter
-                ingestion.dialect_detected = f"{delimiter}-delimited"
-            except Exception:
-                delimiter = ','
-                ingestion.dialect_detected = "auto"
+            # SAP exports are always semicolon-delimited (European locale).
+            # For other sources, sniff the delimiter from the first 2KB.
+            source_type = ingestion.data_source_id.source_type
+            if source_type == 'SAP':
+                delimiter = ';'
+                ingestion.dialect_detected = ";-delimited"
+            else:
+                try:
+                    dialect = csv.Sniffer().sniff(ingestion.raw_csv_content[:2048], delimiters=',;\t|')
+                    delimiter = dialect.delimiter
+                    ingestion.dialect_detected = f"{delimiter}-delimited"
+                except Exception:
+                    delimiter = ','
+                    ingestion.dialect_detected = "auto"
 
             csv_reader = csv.DictReader(io.StringIO(ingestion.raw_csv_content), delimiter=delimiter)
 
@@ -258,104 +264,16 @@ class IngestionViewSet(TenantQuerySetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get data source for field mapping
-        data_source = ingestion.data_source_id
-
         with transaction.atomic():
-            # Delete old normalized records (idempotency)
-            old_normalized = NormalizedRecord.objects.filter(ingestion_id=ingestion.id)
-            old_ids = list(old_normalized.values_list('id', flat=True))
-            old_normalized.delete()
+            from .normalization import normalize_ingestion
+            result = normalize_ingestion(ingestion)
 
-            # Delete old emissions data points created from this ingestion
-            from breathe.apps.emissions.models import NormalizedRecord as EmissionsNormalized
-            EmissionsNormalized.objects.filter(ingestion_id=ingestion.id).delete()
-
-            # Delete old review tasks
-            ReviewTask.objects.filter(
-                normalized_record__ingestion_id=ingestion.id
-            ).delete()
-
-            # Normalize each parsed record
-            valid_count = 0
-            warning_count = 0
-            error_count = 0
-
-            for parsed_record in ParsedRecord.objects.filter(ingestion_id=ingestion.id):
-                # Apply field mapping
-                normalized_values = {}
-                validation_errors = []
-                data_quality_flags = []
-                is_valid = True
-
-                for csv_col, normalized_field in data_source.field_mapping.items():
-                    raw_value = parsed_record.raw_values.get(csv_col)
-
-                    if raw_value is None or str(raw_value).strip() == '':
-                        # Missing required field
-                        validation_errors.append({
-                            'field': normalized_field,
-                            'error': 'Required field missing'
-                        })
-                        is_valid = False
-                    else:
-                        # Store normalized value
-                        normalized_values[normalized_field] = raw_value
-
-                        # Type conversions for emissions fields
-                        if 'emissions' in normalized_field.lower():
-                            try:
-                                normalized_values[normalized_field] = float(raw_value)
-                            except ValueError:
-                                validation_errors.append({
-                                    'field': normalized_field,
-                                    'error': f'Invalid number: {raw_value}'
-                                })
-                                is_valid = False
-
-                # Calculate data quality score
-                completeness = (len(normalized_values) / len(data_source.field_mapping)) * 100
-                data_quality_score = int(completeness * 0.8 + (100 if not validation_errors else 0) * 0.2)
-
-                if not is_valid:
-                    error_count += 1
-                elif validation_errors or data_quality_flags:
-                    warning_count += 1
-                else:
-                    valid_count += 1
-
-                # Create normalized record
-                normalized_record = NormalizedRecord.objects.create(
-                    ingestion_id=ingestion,
-                    parsed_record_id=parsed_record,
-                    tenant_id=request.user.profile.tenant_id,
-                    facility_name=normalized_values.get('facility_name'),
-                    scope_1_emissions=normalized_values.get('scope_1_emissions'),
-                    scope_2_emissions=normalized_values.get('scope_2_emissions'),
-                    scope_3_emissions=normalized_values.get('scope_3_emissions'),
-                    reporting_year=normalized_values.get('year') or normalized_values.get('reporting_year'),
-                    normalized_values=normalized_values,
-                    validation_errors=validation_errors,
-                    data_quality_flags=data_quality_flags,
-                    is_valid=is_valid,
-                    data_quality_score=data_quality_score
-                )
-
-                # Create review task (analyst will review)
-                ReviewTask.objects.create(
-                    tenant_id=request.user.profile.tenant_id,
-                    normalized_record=normalized_record,
-                    status='PENDING' if not is_valid else 'AUTO_APPROVED' if data_quality_score >= 80 else 'PENDING',
-                    priority=1 if is_valid and data_quality_score >= 80 else 5,
-                )
-
-            # Update ingestion
             ingestion.status = 'NORMALIZED'
-            ingestion.valid_rows = valid_count
-            ingestion.rows_with_warnings = warning_count
-            ingestion.rows_with_errors = error_count
+            ingestion.valid_rows = result['valid_count']
+            ingestion.rows_with_warnings = 0
+            ingestion.rows_with_errors = result['invalid_count']
             ingestion.normalized_at = timezone.now()
-            ingestion.field_mapping_used = data_source.field_mapping
+            ingestion.field_mapping_used = ingestion.data_source_id.field_mapping
             ingestion.save()
 
         serializer = IngestionStatusSerializer(ingestion)

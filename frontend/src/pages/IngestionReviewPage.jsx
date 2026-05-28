@@ -156,7 +156,9 @@ function IngestionReviewPage() {
               <thead>
                 <tr>
                   <th style={styles.th}>Facility</th>
-                  <th style={styles.th}>Scope 1 (MT)</th>
+                  <th style={styles.th}>Scope 1 (mtCO2e)</th>
+                  <th style={styles.th}>Scope 2 (mtCO2e)</th>
+                  <th style={styles.th}>Scope 3 (mtCO2e)</th>
                   <th style={styles.th}>Year</th>
                   <th style={styles.th}>Quality Score</th>
                   <th style={styles.th}>Valid</th>
@@ -166,7 +168,9 @@ function IngestionReviewPage() {
                 {ingestion.sample_normalized_records.map((record, idx) => (
                   <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
                     <td style={styles.td}>{record.facility_name ?? '—'}</td>
-                    <td style={styles.td}>{record.scope_1_emissions ?? '—'}</td>
+                    <td style={styles.td}>{record.scope_1_emissions != null ? Number(record.scope_1_emissions).toFixed(4) : '—'}</td>
+                    <td style={styles.td}>{record.scope_2_emissions != null ? Number(record.scope_2_emissions).toFixed(4) : '—'}</td>
+                    <td style={styles.td}>{record.scope_3_emissions != null ? Number(record.scope_3_emissions).toFixed(4) : '—'}</td>
                     <td style={styles.td}>{record.reporting_year ?? '—'}</td>
                     <td style={styles.td}>{record.data_quality_score ?? '—'}</td>
                     <td style={{...styles.td, color: record.is_valid ? '#28a745' : '#dc3545', fontWeight: '600'}}>
