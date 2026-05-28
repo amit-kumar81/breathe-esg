@@ -9,6 +9,10 @@ function NavBar() {
 
   const closeMenu = () => setMenuOpen(false)
 
+  const role = user?.role
+  const canUpload = role === 'ADMIN' || role === 'DATA_PROVIDER'
+  const canReview = role === 'ADMIN' || role === 'ANALYST'
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
@@ -17,8 +21,8 @@ function NavBar() {
         {/* Desktop nav links */}
         <nav className="navbar-links">
           <NavLink to="/dashboard" style={linkStyle} onClick={closeMenu}>Dashboard</NavLink>
-          <NavLink to="/upload"    style={linkStyle} onClick={closeMenu}>Upload</NavLink>
-          <NavLink to="/review"    style={linkStyle} onClick={closeMenu}>Review</NavLink>
+          {canUpload && <NavLink to="/upload" style={linkStyle} onClick={closeMenu}>Upload</NavLink>}
+          {canReview && <NavLink to="/review" style={linkStyle} onClick={closeMenu}>Review</NavLink>}
         </nav>
 
         {/* Desktop user info */}
@@ -55,8 +59,8 @@ function NavBar() {
           </div>
         )}
         <NavLink to="/dashboard" style={drawerLinkStyle} onClick={closeMenu}>Dashboard</NavLink>
-        <NavLink to="/upload"    style={drawerLinkStyle} onClick={closeMenu}>Upload</NavLink>
-        <NavLink to="/review"    style={drawerLinkStyle} onClick={closeMenu}>Review</NavLink>
+        {canUpload && <NavLink to="/upload" style={drawerLinkStyle} onClick={closeMenu}>Upload</NavLink>}
+        {canReview && <NavLink to="/review" style={drawerLinkStyle} onClick={closeMenu}>Review</NavLink>}
         {user && (
           <button className="drawer-logout" onClick={() => { logout(); closeMenu() }}>Logout</button>
         )}

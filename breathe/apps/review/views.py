@@ -6,24 +6,11 @@ from django.db import transaction
 
 from breathe.apps.ingest.models import NormalizedRecord
 from breathe.apps.review.serializers import NormalizedRecordReviewSerializer, ApprovalActionSerializer
+from breathe.apps.auth.permissions import IsAnalyst
 
 
 class ReviewTaskViewSet(viewsets.ViewSet):
-    """
-    Review workflow driven entirely by NormalizedRecord.review_status.
-
-    The pipeline is simple:
-        normalize → PENDING_REVIEW → analyst approves/rejects → APPROVED/REJECTED
-
-    Approved records feed the Analytics Dashboard directly from NormalizedRecord.
-    No intermediate EmissionsDataPoint table — one source of truth.
-
-    Endpoints:
-        GET  /api/review/              list records (filter by ?status=)
-        GET  /api/review/{id}/         record detail
-        POST /api/review/{id}/approve/ mark approved
-        POST /api/review/{id}/reject/  mark rejected
-    """
+    permission_classes = [IsAnalyst]
 
     def _get_paginated(self, request, queryset):
         from rest_framework.pagination import PageNumberPagination

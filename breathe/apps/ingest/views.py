@@ -11,20 +11,14 @@ from rest_framework import generics
 from .models import RawIngestion, DataSource
 from .serializers import IngestionUploadSerializer, RawIngestionListSerializer, RawIngestionDetailSerializer, DataSourceSerializer
 from .utils import compute_file_hash, parse_csv_to_rows, check_idempotency
+from breathe.apps.auth.permissions import IsDataProvider
 
 logger = logging.getLogger('breathe.ingest')
 
 
 class IngestionViewSet(viewsets.ViewSet):
-    """
-    ViewSet for ingestion operations.
-
-    Endpoints:
-    - POST /api/ingest/upload/ - Upload CSV file
-    - GET /api/ingest/ - List ingestions (future)
-    - GET /api/ingest/{id}/ - Get ingestion details (future)
-    """
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [IsDataProvider]
 
     @action(detail=False, methods=['post'], url_path='upload', url_name='upload')
     def upload(self, request):
@@ -346,8 +340,8 @@ class IngestionViewSet(viewsets.ViewSet):
 
 
 class DataSourceListView(generics.ListAPIView):
-    """GET /api/ingest/datasources/ — list data sources for the current tenant."""
     serializer_class = DataSourceSerializer
+    permission_classes = [IsDataProvider]
 
     def get_queryset(self):
         tenant_id = self.request.user.profile.tenant_id
