@@ -1,11 +1,3 @@
-/**
- * Chunk 3.2: Login Page
- *
- * Handles user authentication with email/password.
- * Stores JWT token in localStorage on success.
- * Redirects to dashboard after successful login.
- */
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLogin } from '../hooks/useAuth'
@@ -19,9 +11,6 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState({})
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = (e) => {
     e.preventDefault()
 
@@ -41,18 +30,13 @@ function LoginPage() {
     )
   }
 
-  /**
-   * Handle field blur (for showing validation errors)
-   */
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }))
   }
 
-  /**
-   * Check if field has error
-   */
   const hasError = (field) => {
-    return touched[field] && !eval(`${field}`)
+    const values = { username, password }
+    return touched[field] && !values[field]
   }
 
   const errorMessage = error ? getErrorMessage(error) : null
@@ -156,9 +140,6 @@ function LoginPage() {
   )
 }
 
-/**
- * Inline styles for login page
- */
 const styles = {
   container: {
     display: 'flex',

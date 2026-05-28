@@ -1,10 +1,3 @@
-/**
- * Chunk 3.1: API Client Setup
- *
- * Centralized axios instance with JWT token management.
- * Automatically attaches bearer token to all requests.
- */
-
 import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'

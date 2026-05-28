@@ -1,10 +1,3 @@
-/**
- * Chunk 3.3: Upload Page
- *
- * CSV file upload with progress tracking.
- * Validates file, uploads to backend, shows ingestion ID.
- */
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUploadCSV, useDataSources, useIngestions } from '../hooks/useIngestions'

@@ -1,10 +1,3 @@
-/**
- * Chunk 3.3: Ingestion Review Page
- *
- * Shows ingestion status, parsed rows, and allows triggering
- * parse/normalize workflow steps.
- */
-
 import { useParams } from 'react-router-dom'
 import { useIngestionDetail, useParse, useNormalize } from '../hooks/useIngestions'
 

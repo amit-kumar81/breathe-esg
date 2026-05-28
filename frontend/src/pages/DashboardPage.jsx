@@ -1,10 +1,3 @@
-/**
- * Chunk 3.5: Dashboard & Data Visualization
- *
- * Shows approved emissions data with charts and filters.
- * Uses Recharts for visualization.
- */
-
 import { useState } from 'react'
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie,

@@ -11,13 +11,12 @@ The pipeline is:
 ```
 RawIngestion (raw file, never touched)
   → ParsedRecord (one row dict per CSV row)
-    → NormalizedRecord (validated, emission factors applied)
-      → EmissionsDataPoint (one per scope per row, ready for review)
-        → ReviewTask (analyst sign-off queue)
-          → ReviewApproval (immutable decision record)
+    → NormalizedRecord (validated, emission factors applied, review lifecycle)
 
 AuditLog (append-only, covers all model changes)
 ```
+
+`NormalizedRecord` is the single source of truth. It carries `review_status` (PENDING_REVIEW → APPROVED / REJECTED) directly, so the analyst review workflow and the analytics layer both read from the same table without any join.
 
 ---
 
@@ -42,11 +41,12 @@ The three scopes come from the GHG Protocol:
 - **Scope 2**: Indirect emissions from purchased electricity/steam. In this app: utility meter data converted to CO2e using a grid emission factor.
 - **Scope 3**: All other indirect emissions in the value chain. In this app: business travel (flights, hotels, car rentals).
 
-Scope is stored in two places:
-1. `EmissionsDataPoint.scope` — an enum (`SCOPE_1`, `SCOPE_2`, `SCOPE_3`) on the final record. This is the field analysts filter and approve by.
-2. `NormalizedRecord.scope_1_emissions / scope_2_emissions / scope_3_emissions` — three separate nullable Decimal columns. A single row from SAP might populate all three if the report includes cross-scope data.
+Scope is stored as three separate nullable Decimal columns on `NormalizedRecord`:
+- `scope_1_emissions` — direct emissions (SAP source)
+- `scope_2_emissions` — purchased electricity (UTILITY source, calculated from kWh × grid factor)
+- `scope_3_emissions` — value chain (TRAVEL source, calculated from distance/nights × emission factor)
 
-Why split into three columns on NormalizedRecord but one scope per EmissionsDataPoint? Because the normalization output is per-row (one facility per CSV row might have all three scopes), but the analytics layer needs one record per scope per facility per year to make aggregation clean. The normalization step fans one NormalizedRecord out into up to three EmissionsDataPoints.
+A SAP row may populate all three columns if the report includes cross-scope data. UTILITY rows only populate `scope_2_emissions`. TRAVEL rows only populate `scope_3_emissions`. The dashboard aggregates with `SUM(scope_1) + SUM(scope_2) + SUM(scope_3)` across all approved records.
 
 ---
 
@@ -59,11 +59,11 @@ Why split into three columns on NormalizedRecord but one scope per EmissionsData
 The lineage chain is:
 
 ```
-EmissionsDataPoint.parsed_record_id → ParsedRecord.id
+NormalizedRecord.parsed_record_id → ParsedRecord.id
 ParsedRecord.ingestion_id → RawIngestion.id
 ```
 
-So from any final emissions figure you can trace back to the exact row number in the original CSV. `ParsedRecord.raw_values` stores the original row as a JSON dict — exactly what the CSV contained before any transformation.
+So from any approved emissions figure you can trace back to the exact row number in the original CSV. `ParsedRecord.raw_values` stores the original row as a JSON dict — exactly what the CSV contained before any transformation.
 
 `ParsedRecord.source_row_number` is the 1-indexed row number in the original file (row 2 = first data row after header). This means you can open the original CSV, jump to that row, and verify the raw value.
 
@@ -91,7 +91,7 @@ All factors are converted to mtCO2e before storage (divide kgCO2e factors by 1,0
 
 `AuditLog` is append-only. The `save()` and `delete()` methods raise `ValueError` — you cannot update or delete an audit record. This is enforced in the model, not just by convention.
 
-Every CREATE, UPDATE, and DELETE on `EmissionsDataPoint`, `NormalizedRecord`, and `ReviewTask` is automatically logged via Django signals (`audit/signals.py`). The log entry includes:
+Every CREATE, UPDATE, and DELETE on `NormalizedRecord` is automatically logged via Django signals (`audit/signals.py`). The log entry includes:
 - `object_type` + `object_id`: which record changed
 - `action`: CREATE / UPDATE / DELETE
 - `change_summary`: `{old_values: {...}, new_values: {...}}` — both before and after state for updates
@@ -99,7 +99,7 @@ Every CREATE, UPDATE, and DELETE on `EmissionsDataPoint`, `NormalizedRecord`, an
 - `ip_address`: for forensic traceability
 - `timestamp`: auto-set, never editable
 
-`ReviewApproval` is also immutable after creation. Each analyst decision (approve/reject) creates a new ReviewApproval row. If an analyst approves, then someone overrides with a rejection, there are two ReviewApproval rows — the full decision history is preserved.
+Each analyst decision (approve/reject) updates `NormalizedRecord.review_status` and stamps `reviewed_by`, `reviewed_at`, and `reviewer_notes` directly on the record. The AuditLog captures the before/after state of every status change, preserving the full decision history.
 
 ---
 
@@ -112,10 +112,7 @@ Every CREATE, UPDATE, and DELETE on `EmissionsDataPoint`, `NormalizedRecord`, an
 | `DataSource` | ingest | Source metadata + field_mapping (CSV column → standard field) |
 | `RawIngestion` | ingest | Raw file blob, SHA-256 hash, never modified |
 | `ParsedRecord` | ingest | One row from RawIngestion as a JSON dict, unvalidated |
-| `NormalizedRecord` | ingest | Validated + emission-factor-applied version of ParsedRecord |
-| `EmissionsDataPoint` | emissions | One scope per row, ready for analyst review |
-| `ReviewTask` | review | Analyst sign-off queue (PENDING → APPROVED / REJECTED) |
-| `ReviewApproval` | review | Immutable record of each analyst decision |
+| `NormalizedRecord` | ingest | Validated + emission-factor-applied record; carries review_status (PENDING_REVIEW / APPROVED / REJECTED) |
 | `AuditLog` | audit | Append-only change log, covers all model mutations |
 
 ---
