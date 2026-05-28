@@ -158,7 +158,7 @@ class IngestionViewSet(viewsets.ViewSet):
             return Response({'results': data, 'count': len(data)})
         except Exception as e:
             logger.error(f"Error listing ingestions: {e}", exc_info=True)
-            return Response({'results': [], 'count': 0}, status=status.HTTP_200_OK)
+            return Response({'results': [], 'count': 0, '_error': str(e)}, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
         try:
