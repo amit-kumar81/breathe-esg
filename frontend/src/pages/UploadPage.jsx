@@ -19,6 +19,7 @@ function UploadPage() {
   const [file, setFile] = useState(null)
   const [dataSourceId, setDataSourceId] = useState('')
   const [touched, setTouched] = useState({})
+  const [selectedIngestionId, setSelectedIngestionId] = useState(null)
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0]
@@ -50,27 +51,89 @@ function UploadPage() {
     upload({ file, dataSourceId })
   }
 
-  // After successful upload, show ingestion card with option to proceed
+  // After successful upload, show success banner + full ingestion history
   if (data && !isPending) {
-    return (
-      <div className="page-container" style={{ maxWidth: 640 }}>
-        <div style={styles.successCard}>
-          <h2 style={styles.successTitle}>✓ Upload Successful</h2>
-          <p style={styles.successText}>Your CSV has been uploaded and is ready for processing.</p>
+    const justUploadedId = data.ingestion_id
+    const activeId = selectedIngestionId || justUploadedId
+    const allIngestions = historyData?.results || []
 
-          <div style={styles.details}>
-            <p><strong>Ingestion ID:</strong> {data.ingestion_id}</p>
-            <p><strong>File:</strong> {data.filename}</p>
-            <p><strong>Rows:</strong> {data.line_count}</p>
-            <p><strong>Status:</strong> {data.status}</p>
+    return (
+      <div className="page-container" style={{ maxWidth: 900 }}>
+        {/* Success banner */}
+        <div style={styles.successBanner}>
+          <span style={styles.successIcon}>✓</span>
+          <div>
+            <strong>{data.filename}</strong> uploaded successfully — {data.line_count} rows
+          </div>
+        </div>
+
+        {/* History table with selection */}
+        <div style={styles.historyCard}>
+          <div style={styles.historyCardHeader}>
+            <h2 style={styles.historyTitle}>Your Uploads</h2>
+            <p style={styles.historySubtitle}>Select a file below, then click Review &amp; Parse</p>
           </div>
 
-          <div className="upload-actions">
+          <div className="table-scroll">
+            <table style={styles.historyTable}>
+              <thead>
+                <tr style={styles.historyThead}>
+                  <th style={{ ...styles.historyTh, width: 36 }}></th>
+                  <th style={styles.historyTh}>File</th>
+                  <th style={styles.historyTh}>Data Source</th>
+                  <th style={styles.historyTh}>Rows</th>
+                  <th style={styles.historyTh}>Step</th>
+                  <th style={styles.historyTh}>Uploaded</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allIngestions.map((ing) => {
+                  const isSelected = ing.id === activeId
+                  const isNew = ing.id === justUploadedId
+                  return (
+                    <tr
+                      key={ing.id}
+                      onClick={() => setSelectedIngestionId(ing.id)}
+                      style={{
+                        ...styles.historyTr,
+                        backgroundColor: isSelected ? '#e7f3ff' : undefined,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <td style={styles.historyTd}>
+                        <input
+                          type="radio"
+                          name="ingestion"
+                          checked={isSelected}
+                          onChange={() => setSelectedIngestionId(ing.id)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </td>
+                      <td style={styles.historyTd}>
+                        {ing.filename}
+                        {isNew && <span style={styles.newBadge}>NEW</span>}
+                      </td>
+                      <td style={styles.historyTd}>{ing.data_source_name}</td>
+                      <td style={styles.historyTd}>{ing.line_count}</td>
+                      <td style={styles.historyTd}>
+                        <span style={stepBadge(ing.step)}>{ing.step}</span>
+                      </td>
+                      <td style={styles.historyTd}>
+                        {new Date(ing.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={styles.historyActions}>
             <button
               style={styles.primaryButton}
-              onClick={() => navigate(`/ingest/${data.ingestion_id}`)}
+              onClick={() => navigate(`/ingest/${activeId}`)}
             >
-              Review & Parse
+              Review &amp; Parse
             </button>
             <button
               style={styles.secondaryButton}
@@ -79,6 +142,7 @@ function UploadPage() {
                 setFile(null)
                 setDataSourceId('')
                 setTouched({})
+                setSelectedIngestionId(null)
               }}
             >
               Upload Another
@@ -197,50 +261,6 @@ function UploadPage() {
           </ul>
         </div>
       </div>
-
-      {/* Ingestion History */}
-      {historyData?.results?.length > 0 && (
-        <div style={styles.historySection}>
-          <h2 style={styles.historyTitle}>Previous Uploads</h2>
-          <div className="table-scroll">
-            <table style={styles.historyTable}>
-              <thead>
-                <tr style={styles.historyThead}>
-                  <th style={styles.historyTh}>File</th>
-                  <th style={styles.historyTh}>Data Source</th>
-                  <th style={styles.historyTh}>Rows</th>
-                  <th style={styles.historyTh}>Step</th>
-                  <th style={styles.historyTh}>Uploaded</th>
-                  <th style={styles.historyTh}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historyData.results.map((ing) => (
-                  <tr key={ing.id} style={styles.historyTr}>
-                    <td style={styles.historyTd}>{ing.filename}</td>
-                    <td style={styles.historyTd}>{ing.data_source_name}</td>
-                    <td style={styles.historyTd}>{ing.line_count}</td>
-                    <td style={styles.historyTd}>
-                      <span style={stepBadge(ing.step)}>{ing.step}</span>
-                    </td>
-                    <td style={styles.historyTd}>
-                      {new Date(ing.created_at).toLocaleString()}
-                    </td>
-                    <td style={styles.historyTd}>
-                      <button
-                        style={styles.historyBtn}
-                        onClick={() => navigate(`/ingest/${ing.id}`)}
-                      >
-                        Review &amp; Parse
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -433,26 +453,51 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500'
   },
-  historySection: {
-    marginTop: 32
+  successBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#d1e7dd',
+    border: '1px solid #a3cfbb',
+    borderRadius: 8,
+    padding: '14px 20px',
+    marginBottom: 20,
+    color: '#0a3622',
+    fontSize: 14
+  },
+  successIcon: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: '#198754'
+  },
+  historyCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+    overflow: 'hidden'
+  },
+  historyCardHeader: {
+    padding: '20px 24px 16px',
+    borderBottom: '1px solid #eee'
   },
   historyTitle: {
+    margin: 0,
     fontSize: 18,
-    fontWeight: 600,
-    color: '#333',
-    marginBottom: 12
+    fontWeight: 700,
+    color: '#212529'
+  },
+  historySubtitle: {
+    margin: '4px 0 0',
+    fontSize: 13,
+    color: '#6c757d'
   },
   historyTable: {
     width: '100%',
     borderCollapse: 'collapse',
-    backgroundColor: 'white',
-    fontSize: 13,
-    borderRadius: 6,
-    overflow: 'hidden',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+    fontSize: 13
   },
   historyThead: {
-    backgroundColor: '#f1f3f5'
+    backgroundColor: '#f8f9fa'
   },
   historyTh: {
     padding: '10px 14px',
@@ -470,15 +515,22 @@ const styles = {
     color: '#333',
     whiteSpace: 'nowrap'
   },
-  historyBtn: {
-    padding: '5px 12px',
-    backgroundColor: '#007bff',
+  newBadge: {
+    marginLeft: 8,
+    padding: '1px 6px',
+    borderRadius: 3,
+    fontSize: 10,
+    fontWeight: 700,
+    backgroundColor: '#0d6efd',
     color: 'white',
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 500
+    verticalAlign: 'middle'
+  },
+  historyActions: {
+    display: 'flex',
+    gap: 12,
+    padding: '16px 24px',
+    borderTop: '1px solid #eee',
+    backgroundColor: '#f8f9fa'
   }
 }
 
