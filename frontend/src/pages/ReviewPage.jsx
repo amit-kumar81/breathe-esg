@@ -322,7 +322,7 @@ const styles = {
   detailValue: { fontSize: 14, color: '#333' },
   errorsBox: { padding: '10px 14px', background: '#fff3f3', border: '1px solid #f5c6cb', borderRadius: 6, fontSize: 13, color: '#721c24', marginTop: 8 },
   actionArea: { borderTop: '1px solid #eee', paddingTop: 20 },
-  actionBtns: { display: 'flex', gap: 10 },
+  actionBtns: { display: 'flex', gap: 10, flexWrap: 'wrap' },
   approveBtn: { flex: 1, padding: '10px 16px', background: '#28a745', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 },
   rejectBtn: { flex: 1, padding: '10px 16px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 },
   cancelBtn: { flex: 1, padding: '10px 16px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },

@@ -42,7 +42,7 @@ function App() {
                 <ProtectedRoute>
                   <>
                     <NavBar />
-                    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+                    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                       <Routes>
                         <Route path="/dashboard" element={<DashboardPage />} />
 
