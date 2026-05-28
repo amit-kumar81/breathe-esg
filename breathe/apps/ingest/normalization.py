@@ -500,6 +500,12 @@ def normalize_ingestion(raw_ingestion):
     # Idempotent: clear previous results
     NormalizedRecord.objects.filter(ingestion_id=raw_ingestion).delete()
     EmissionsDataPoint.objects.filter(parsed_record_id__ingestion_id=raw_ingestion).delete()
+    # Also remove orphaned EDPs whose parsed_record_id was set to NULL by a prior re-parse
+    EmissionsDataPoint.objects.filter(
+        parsed_record_id__isnull=True,
+        data_source_id=raw_ingestion.data_source_id,
+        tenant_id=raw_ingestion.tenant_id,
+    ).delete()
     ReviewTask.objects.filter(ingestion_id=raw_ingestion).delete()
 
     nr_to_create = []
