@@ -46,17 +46,20 @@ class IngestionUploadSerializer(serializers.Serializer):
 
         return value
 
+    # Expected required columns per source type (lowercase, stripped).
+    # If none of these appear in the uploaded file's headers, the wrong
+    # data source was selected.
+    _REQUIRED_COLUMNS = {
+        'SAP':     {'werksname', 'buchungsjahr', 'scope1_tco2e', 'plant_name'},
+        'UTILITY': {'site_name', 'usage_kwh', 'billing_start'},
+        'TRAVEL':  {'employee_id', 'expense_type', 'transaction_date'},
+    }
+
     def validate(self, data):
-        """
-        Validate that:
-        1. DataSource exists and belongs to the user's tenant
-        2. CSV file is readable and has valid structure
-        """
         file_obj = data.get('file')
         data_source_id = data.get('data_source_id')
         request = self.context.get('request')
 
-        # Get DataSource
         try:
             data_source = DataSource.objects.get(id=data_source_id)
         except DataSource.DoesNotExist:
@@ -68,23 +71,58 @@ class IngestionUploadSerializer(serializers.Serializer):
             if str(data_source.tenant_id) != str(request.tenant_id):
                 raise serializers.ValidationError("DataSource does not belong to your tenant")
 
-        # Try to parse CSV to validate structure
+        # Parse the CSV and validate structure
         try:
             file_obj.seek(0)
-            text_content = file_obj.read().decode('utf-8')
-            file_obj.seek(0)  # Reset for the view to read later
 
-            reader = csv.DictReader(io.StringIO(text_content))
+            # SAP files are semicolon-delimited — detect delimiter before parsing headers
+            source_type = data_source.source_type
+            raw_bytes = file_obj.read()
+            file_obj.seek(0)
+
+            try:
+                text_content = raw_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                raise serializers.ValidationError("File must be UTF-8 encoded")
+
+            delimiter = ';' if source_type == 'SAP' else ','
+            if source_type != 'SAP':
+                try:
+                    dialect = csv.Sniffer().sniff(text_content[:2048], delimiters=',;\t|')
+                    delimiter = dialect.delimiter
+                except csv.Error:
+                    delimiter = ','
+
+            reader = csv.DictReader(io.StringIO(text_content), delimiter=delimiter)
             rows = list(reader)
 
             if not rows:
-                raise serializers.ValidationError("CSV file is empty")
+                raise serializers.ValidationError("CSV file is empty (no data rows found)")
+
+            # Column-type validation: make sure the uploaded file's headers
+            # contain at least one column that belongs to the selected source type.
+            # This catches the common mistake of uploading a SAP file against a
+            # Travel data source (or any other mismatch).
+            uploaded_headers = {h.strip().lower() for h in (reader.fieldnames or [])}
+            expected_cols = self._REQUIRED_COLUMNS.get(source_type, set())
+            matching = uploaded_headers & expected_cols
+
+            if expected_cols and not matching:
+                # Build a human-readable hint showing what was found vs expected
+                found_sample = ', '.join(sorted(uploaded_headers)[:6]) or '(none)'
+                expected_sample = ', '.join(sorted(expected_cols))
+                raise serializers.ValidationError(
+                    f"Wrong file format for a {source_type} data source. "
+                    f"Expected columns like: {expected_sample}. "
+                    f"Found: {found_sample}. "
+                    f"Make sure you selected the correct Data Source for this file."
+                )
 
             data['_parsed_rows'] = rows
-            data['_field_names'] = list(rows[0].keys()) if rows else []
+            data['_field_names'] = list(reader.fieldnames or [])
 
-        except UnicodeDecodeError:
-            raise serializers.ValidationError("File must be UTF-8 encoded")
+        except serializers.ValidationError:
+            raise
         except csv.Error as e:
             raise serializers.ValidationError(f"Invalid CSV format: {str(e)}")
 
