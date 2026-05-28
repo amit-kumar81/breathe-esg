@@ -12,6 +12,7 @@ Design:
 """
 
 import logging
+from django.db.models import F
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -137,25 +138,23 @@ class IngestionViewSet(viewsets.ViewSet):
 
     def list(self, request):
         try:
-            tenant = request.user.profile.tenant
-        except Exception:
-            return Response({'results': [], 'count': 0}, status=status.HTTP_200_OK)
-        try:
-            ingestions = RawIngestion.objects.filter(tenant_id=tenant).order_by('-created_at')
-            data = []
-            for i in ingestions:
-                try:
-                    ds_name = i.data_source_id.name
-                except Exception:
-                    ds_name = '—'
-                data.append({
-                    'id': str(i.id),
-                    'filename': i.filename,
-                    'line_count': i.line_count,
-                    'step': i.step,
-                    'data_source_name': ds_name,
-                    'created_at': i.created_at.isoformat(),
-                })
+            rows = list(
+                RawIngestion.objects.order_by('-created_at').values(
+                    'id', 'filename', 'line_count', 'step', 'created_at',
+                    ds_name=F('data_source_id__name')
+                )
+            )
+            data = [
+                {
+                    'id': str(r['id']),
+                    'filename': r['filename'],
+                    'line_count': r['line_count'],
+                    'step': r['step'],
+                    'data_source_name': r['ds_name'] or '—',
+                    'created_at': r['created_at'].isoformat(),
+                }
+                for r in rows
+            ]
             return Response({'results': data, 'count': len(data)})
         except Exception as e:
             logger.error(f"Error listing ingestions: {e}", exc_info=True)
